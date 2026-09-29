@@ -44,7 +44,7 @@ Do not connect preview branch deployments to the production database; give previ
 
 ## Domain: peevue.com
 
-The domain is registered at GoDaddy. Add it to the same Cloudflare account, preserve every existing DNS record (including email-related records), and replace its GoDaddy nameservers with the exact pair Cloudflare assigns. Once the zone is active, add `peevue.com` and `www.peevue.com` as custom domains for the Worker. Registration can stay at GoDaddy.
+The domain remains registered at GoDaddy and now uses Cloudflare DNS. Both `peevue.com` and `www.peevue.com` are configured as production Worker custom domains in `wrangler.jsonc`. Keep these route declarations when deploying. The prior two root A records and www CNAME were replaced with the Worker connections; unrelated DNS records were preserved.
 
 ## Before opening contributions
 

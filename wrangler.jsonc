@@ -22,5 +22,15 @@
       "migrations_dir": "drizzle"
     }
   ],
-  "r2_buckets": []
+  "r2_buckets": [],
+  "routes": [
+    {
+      "pattern": "peevue.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.peevue.com",
+      "custom_domain": true
+    }
+  ]
 }
