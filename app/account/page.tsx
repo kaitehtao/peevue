@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { User } from "@supabase/supabase-js";
 import { Header, Footer } from "@/components/community/header";
 import { browserClient, googleSignInAvailable, memberFetch } from "@/lib/supabase-browser";
+import { accountError, displayName } from "@/lib/account";
 type OwnReview = {
   id: string;
   display_name: string;
@@ -27,6 +28,25 @@ export default function Account() {
     [reviews, setReviews] = useState<OwnReview[]>([]),
     [isAdmin, setIsAdmin] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState<boolean | null>(null);
+  const [profileName, setProfileName] = useState("");
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("mode");
+    if (requested === "signup" || requested === "reset") setMode(requested);
+  }, []);
+  useEffect(() => { setProfileName(displayName(user?.user_metadata?.display_name)); }, [user]);
+  async function saveProfile(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true); setError(""); setMessage("");
+    try {
+      const name = displayName(profileName);
+      if (name.length < 2) throw new Error("Use a display name with 2–50 characters.");
+      const { data, error } = await (await browserClient()).auth.updateUser({ data: { display_name: name } });
+      if (error) throw error;
+      setUser(data.user);
+      setMessage("Your display name has been saved.");
+    } catch (e) { setError(accountError(e)); }
+    finally { setBusy(false); }
+  }
   useEffect(() => {
     let live = true;
     googleSignInAvailable()
@@ -42,7 +62,7 @@ export default function Account() {
       const client = await browserClient();
       const { error } = await client.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: window.location.origin + "/account" },
+        options: { redirectTo: window.location.origin + "/account", queryParams: { prompt: "select_account" } },
       });
       if (error) throw error;
     } catch {
@@ -111,18 +131,23 @@ export default function Account() {
     setError("");
     setMessage("");
     const form = new FormData(e.currentTarget),
-      email = String(form.get("email") || ""),
+      email = String(form.get("email") || "").trim(),
       password = String(form.get("password") || "");
     try {
       const client = await browserClient();
       if (mode === "signup") {
-        const { error } = await client.auth.signUp({
+        const name = displayName(form.get("display_name"));
+        if (name.length < 2) throw new Error("Use a display name with 2–50 characters.");
+        const { data, error } = await client.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + "/account" },
+          options: { emailRedirectTo: window.location.origin + "/account", data: { display_name: name } },
         });
         if (error) throw error;
-        setMessage("Check your email to confirm your account, then sign in.");
+        if (data.session) {
+          setUser(data.session.user);
+          setMessage("Welcome to PEEVUE.");
+        } else setMessage("Check your inbox and spam folder for a confirmation link, then return here to sign in.");
       } else if (mode === "reset") {
         const { error } = await client.auth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin + "/account",
@@ -145,7 +170,7 @@ export default function Account() {
         setMessage("");
       }
     } catch (e) {
-      setError((e as Error).message);
+      setError(accountError(e));
     } finally {
       setBusy(false);
     }
@@ -156,9 +181,9 @@ export default function Account() {
       <main className="portal">
         <span className="eyebrow">YOUR PEEVUE</span>
         <h1>
-          {user && mode !== "recovery"
-            ? "Your contributions."
-            : "A little more community."}
+          {user && mode !== "recovery" && mode !== "reset"
+            ? "Your PEEVUE dashboard."
+            : mode === "signup" ? "Create your PEEVUE account." : mode === "reset" || mode === "recovery" ? "Reset your password." : "Welcome back."}
         </h1>
         {!ready && <p role="status">Checking your account…</p>}
         {error && (
@@ -173,7 +198,7 @@ export default function Account() {
         )}
         {ready &&
           enabled &&
-          (user && mode !== "recovery" ? (
+          (user && mode !== "recovery" && mode !== "reset" ? (
             <>
               <div className="account-actions">
                 <p>Signed in as {user.email}</p>
@@ -199,6 +224,15 @@ export default function Account() {
                   </a>
                 )}
               </div>
+              <section className="account-box">
+                <h2>Your profile</h2>
+                <form className="review-form" onSubmit={saveProfile}>
+                  <label>Display name<input value={profileName} onChange={e => setProfileName(e.target.value)} minLength={2} maxLength={50} required autoComplete="nickname" /></label>
+                  <button className="secondary" disabled={busy}>Save profile</button>
+                </form>
+                <p>Your email stays private. Previous reviews keep the name submitted with them.</p>
+                <a className="inline-link" href="/account?mode=reset" onClick={e => {e.preventDefault(); setMode("reset"); setMessage(""); setError("");}}>Request a password reset</a>
+              </section>
               <h2>My reviews</h2>
               <p>Track your submissions and moderation decisions here.</p>
               {reviews.length === 0 ? (
@@ -248,7 +282,7 @@ export default function Account() {
             </>
           ) : (
             <section className="account-box">
-              {mode !== "recovery" && (
+              {mode !== "recovery" && mode !== "reset" && (
                 <div>
                   <button
                     type="button"
@@ -287,6 +321,7 @@ export default function Account() {
                 ))}
               </div>
               <form className="review-form" onSubmit={submit}>
+                {mode === "signup" && <label>Display name<input name="display_name" required minLength={2} maxLength={50} autoComplete="nickname" /><small>Choose how you want to be known on PEEVUE.</small></label>}
                 {mode !== "recovery" && (
                   <label>
                     Email address
@@ -294,6 +329,7 @@ export default function Account() {
                       name="email"
                       type="email"
                       autoComplete="email"
+                      defaultValue={user?.email || ""}
                       required
                       maxLength={254}
                     />
@@ -313,7 +349,7 @@ export default function Account() {
                       maxLength={128}
                     />
                     {mode !== "signin" && (
-                      <small>Use at least 12 characters.</small>
+                      <small>Create a PEEVUE password with at least 12 characters. This can be different from your email password.</small>
                     )}
                   </label>
                 )}
