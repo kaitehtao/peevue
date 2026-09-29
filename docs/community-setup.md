@@ -1,5 +1,15 @@
 # Community deployment runbook
 
+## Provisioning status (2026-09-28)
+
+- Organization: PEEVUE, `fhoqlbbpqhkjubkwecxe`, Free plan.
+- Project: PEEVUE, `tiadxpijawiiljzybydl`, US West (us-west-1), Free project quote $0/month confirmed by owner.
+- API URL: `https://tiadxpijawiiljzybydl.supabase.co`.
+- `community_accounts` migration applied successfully through the Supabase connector.
+- Browser roles lack direct review read/write and moderation privileges. Security advisor reports only the expected six INFO notices for server-only tables with RLS and no client policies.
+- Still pending: confirmed admin email/account; Auth URL and email sender configuration; server secret binding in Cloudflare; hosted end-to-end validation; merge/deploy PR #1.
+- Dashboard setup was interrupted by an unavailable browser security check. Retry normal dashboard access when available; do not bypass the security control.
+
 ## Resources
 
 Create a dedicated PEEVUE Supabase organization and project. Do not install this schema in the LearnWhatYouOwn project. Cloudflare continues to serve peevue.com and www.peevue.com. Supabase handles Auth, PostgreSQL, and private photo storage; activating Cloudflare R2 is no longer needed for this implementation.
