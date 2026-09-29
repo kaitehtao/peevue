@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "peevue",
+  "main": "vinext/server/fetch-handler",
+  "account_id": "e5c3672efaf52cf5b417da2b09e687af",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "CONTRIBUTIONS_ENABLED": "false"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "peevue-reviews",
+      "database_id": "9f2088a5-7c6a-40c9-8082-4dd5b1d4b06d",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "r2_buckets": []
+}
