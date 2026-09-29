@@ -7,8 +7,14 @@
 - API URL: `https://tiadxpijawiiljzybydl.supabase.co`.
 - `community_accounts` migration applied successfully through the Supabase connector.
 - Browser roles lack direct review read/write and moderation privileges. Security advisor reports only the expected six INFO notices for server-only tables with RLS and no client policies.
-- Two owner-specified administrator email reservations are stored privately in Supabase. Neither account exists yet. Still pending: verified admin accounts; Auth URL and email sender configuration; server secret binding in Cloudflare; hosted end-to-end validation; merge/deploy PR #1.
+- Two owner-specified administrator email reservations are stored privately in Supabase. Neither account exists yet. Still pending: verified admin accounts; Auth URL and email sender configuration; Auth/email and submission end-to-end validation; merge/deploy PR #1.
 - Dashboard setup was interrupted by an unavailable browser security check. Retry normal dashboard access when available; do not bypass the security control.
+
+## Cloudflare connection verification
+
+All three Supabase bindings are now saved on the `peevue` Worker, including the server secret entered by the owner. Preview version `1d8db4dd-5b9d-4aa7-9ddc-0175a16e4e26` (release code commit `5300736`) successfully returned HTTP 200 from `/api/reviews` with an empty real database and contributions enabled. `/api/config` confirms the dedicated PEEVUE project; `/api/admin` and `/api/me` return HTTP 401 without a session. No credentials were printed or committed.
+
+This version is uploaded but has not been promoted to production. Account email delivery, Auth redirect URLs, administrator verification, and full hosted write/upload/moderation testing remain pending. The dashboard browser security check was still unavailable at verification time.
 
 ## Resources
 
