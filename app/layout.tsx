@@ -8,8 +8,8 @@ export const metadata: Metadata = {
     "codex-preview": "development",
   },
   icons: {
-    icon: "/peevue-toilet-pin.png",
-    shortcut: "/peevue-toilet-pin.png",
+    icon: "/peevue-seat-p.png",
+    shortcut: "/peevue-seat-p.png",
   },
 };
 
