@@ -1,0 +1,146 @@
+import { z } from "zod";
+export const placeTypes = [
+  "Restaurant",
+  "Café",
+  "Hotel & lounge",
+  "Public restroom",
+  "Other",
+] as const;
+export const neighborhoods = [
+  "The Strip",
+  "Arts District",
+  "Downtown",
+  "Summerlin",
+  "Henderson",
+  "North Las Vegas",
+  "Las Vegas area",
+] as const;
+export const amenities = [
+  "Accessible",
+  "Changing table",
+  "All-gender",
+] as const;
+export const ratingLabels = [
+  "",
+  "Needs attention",
+  "Could be cleaner",
+  "Mostly clean",
+  "Very clean",
+  "Spotless",
+];
+export function todayInVegas(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: string) => parts.find(part => part.type === type)!.value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+const text = (min: number, max: number) => z.string().trim().min(min).max(max);
+export const venueSchema = z
+  .object({
+    name: text(2, 120),
+    address: text(8, 250),
+    area: z.enum(neighborhoods),
+    type: z.enum(placeTypes),
+    access: z.enum(["Public access", "Customers only", "Ask staff"]),
+    tags: z.array(z.enum(amenities)).max(3),
+    latitude: z.number().min(35.8).max(36.5).nullable(),
+    longitude: z.number().min(-115.6).max(-114.8).nullable(),
+    locationSource: z.enum(["gps", "address", "manual"]),
+  })
+  .refine(
+    (v) => (v.latitude === null) === (v.longitude === null),
+    "Supply both location coordinates.",
+  )
+  .refine(
+    (v) => v.locationSource !== "gps" || v.latitude !== null,
+    "GPS location is missing.",
+  );
+export const submissionSchema = z
+  .object({
+    id: z.string().uuid(),
+    venueId: z.string().uuid().nullable(),
+    venue: venueSchema.nullable(),
+    name: text(2, 50),
+    rating: z.number().int().min(1).max(5),
+    body: text(10, 1500),
+    visited: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .refine((d) => {
+        const t = new Date(d + "T12:00:00Z");
+        return (
+          Number.isFinite(t.getTime()) &&
+          t.toISOString().slice(0, 10) === d &&
+          d <= todayInVegas() &&
+          d >= "2000-01-01"
+        );
+      }, "Choose a valid visit date, today or earlier."),
+    consent: z.literal(true),
+    website: z.string().max(0),
+  })
+  .refine(
+    (v) => v.venueId !== null || v.venue !== null,
+    "Add the bathroom address.",
+  );
+export type VenueInput = z.infer<typeof venueSchema>;
+export type Venue = VenueInput & {
+  id: string;
+  score: number;
+  count: number;
+  photos: string[];
+};
+export type Review = {
+  id: string;
+  venueId: string | null;
+  name: string;
+  rating: number;
+  body: string;
+  visited: string;
+  createdAt: string;
+  photos: string[];
+  status?: string;
+  moderationNote?: string;
+  venue?: VenueInput;
+  venueName?: string;
+};
+export function inVegas(latitude: number, longitude: number) {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= 35.8 &&
+    latitude <= 36.5 &&
+    longitude >= -115.6 &&
+    longitude <= -114.8
+  );
+}
+export function areaFor(
+  latitude: number,
+  longitude: number,
+): (typeof neighborhoods)[number] {
+  if (longitude < -115.25) return "Summerlin";
+  if (latitude < 36.08 && longitude > -115.13) return "Henderson";
+  if (latitude > 36.23) return "North Las Vegas";
+  if (
+    latitude >= 36.157 &&
+    latitude <= 36.185 &&
+    longitude >= -115.16 &&
+    longitude <= -115.125
+  )
+    return "Downtown";
+  if (
+    latitude >= 36.143 &&
+    latitude < 36.157 &&
+    longitude >= -115.16 &&
+    longitude <= -115.125
+  )
+    return "Arts District";
+  if (
+    latitude >= 36.075 &&
+    latitude < 36.143 &&
+    longitude >= -115.185 &&
+    longitude <= -115.15
+  )
+    return "The Strip";
+  return "Las Vegas area";
+}

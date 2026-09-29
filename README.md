@@ -1,56 +1,36 @@
 # PEEVUE
 
-Bathroom discovery and cleanliness reviews, starting with Las Vegas.
+Bathroom discovery and community cleanliness reviews, starting with Las Vegas.
 
-This is the standalone Cloudflare deployment of the PEEVUE prototype. It uses React, Vinext, Cloudflare Workers, and D1. The original private ChatGPT Sites preview remains separate.
+The public site runs on Cloudflare Workers with React/Vinext. Supabase provides accounts, PostgreSQL, and private photo storage. This repository is separate from the old private ChatGPT Sites prototype.
 
-## Current release
+## Community release
 
-- Fictional sample venues and sample ratings are explicitly labeled.
-- Public visitors can browse, search, filter, and inspect bathroom details.
-- Community submissions are disabled on both the server and the interface until contributor accounts and moderation are implemented.
-- Photo upload and retrieval code is retained, but the R2 binding is intentionally absent until R2 is activated on the owner's Cloudflare account.
-- Existing private prototype reviews and photos have not been migrated.
+- Real venue listings and approved community reviews; no fictional ratings or placeholder venue photos.
+- Guest or signed-in submissions with one-to-five toilet ratings and up to three photos.
+- Optional GPS, manual addresses, explicit address lookup, and editable neighborhood tags.
+- Email/password account page with verification, password reset, and own submission history.
+- Protected admin portal for venue corrections, photo selection, approval, rejection, and removal from public results.
+- Server-side quotas, JPEG metadata removal, private storage, and transactional moderation audit records.
 
-## Development
+**Activation:** accounts and submissions remain closed until the dedicated Supabase project is provisioned and Worker bindings are configured. Public signup also requires an email sender. Follow [the deployment runbook](docs/community-setup.md); do not treat a successful code deployment as proof of a working account/email/storage setup.
 
-Use Node 22.13 or newer.
+## Development and validation
+
+Node 22.13 or newer:
 
 ```sh
 npm ci
-npm run db:migrate:local
 npm run dev
-```
-
-## Validate and deploy
-
-```sh
 npm run typecheck
-npm run deploy
+npm test
+npm run build
 ```
 
-The deployment command builds the app, applies pending D1 migrations, and deploys the generated Worker. Authenticate with `npx wrangler login` first. The committed account ID and database ID are resource identifiers, not credentials. Never commit API tokens, cookies, local databases, or uploaded user files.
+Tests run isolated PostgreSQL using PGlite; they never modify a hosted database. Use a separate Supabase development project for full integration testing. Never point previews at production data.
 
-## GitHub and automatic deployment
+## Production
 
-GitHub Actions validates pushes and pull requests. For automatic production deployment, connect this repository to the `peevue` Worker using Cloudflare Workers Builds:
+Repository: `kaitehtao/peevue`. Worker: `peevue`. Domain registration stays at GoDaddy; Cloudflare serves `peevue.com` and `www.peevue.com`. Preserve the custom-domain routes in `wrangler.jsonc`.
 
-- Production branch: `main`
-- Root directory: repository root
-- Build command: `npm run build`
-- Deploy command: `npm run db:migrate:remote && npx wrangler deploy --config dist/server/wrangler.json`
-
-Do not connect preview branch deployments to the production database; give previews separate resources. Automatic deployment must be configured in the Cloudflare dashboard; it is not established by this repository alone.
-
-## Domain: peevue.com
-
-The domain remains registered at GoDaddy and now uses Cloudflare DNS. Both `peevue.com` and `www.peevue.com` are configured as production Worker custom domains in `wrangler.jsonc`. Keep these route declarations when deploying. The prior two root A records and www CNAME were replaced with the Worker connections; unrelated DNS records were preserved.
-
-## Before opening contributions
-
-1. Activate R2 in the Cloudflare dashboard, create the `peevue-photos` bucket, and add `{"binding":"BUCKET","bucket_name":"peevue-photos"}` to `r2_buckets` in `wrangler.jsonc`.
-2. Implement contributor authentication and enforce review ownership on the server.
-3. Add moderation, reporting, abuse controls, and deletion workflows for reviews and photos.
-4. Replace fictional venues with verified listings. Keep ratings empty until genuine reviews exist.
-5. Decide whether to migrate data from the private prototype.
-6. Only after these steps, enable `CONTRIBUTIONS_ENABLED` and verify the complete user journey in the public deployment.
+GitHub Actions validates pushes and pull requests. Cloudflare deployment is manual unless Workers Builds is configured separately. Keep Supabase server secrets in Cloudflare secret bindings, never source control. Existing D1 data remains untouched and is no longer used by the community API. R2 activation is not required because new photos use Supabase Storage.
