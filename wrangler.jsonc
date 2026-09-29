@@ -11,9 +11,7 @@
   "observability": {
     "enabled": true
   },
-  "vars": {
-    "CONTRIBUTIONS_ENABLED": "false"
-  },
+  "vars": {},
   "d1_databases": [
     {
       "binding": "DB",
