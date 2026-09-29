@@ -1,4 +1,4 @@
-import { failure, json, photoUrls, service, user } from "@/lib/supabase-server";
+import { administratorAccess, failure, json, photoUrls, service, user } from "@/lib/supabase-server";
 export async function GET(request: Request) {
   try {
     const who = await user(request, true);
@@ -12,14 +12,8 @@ export async function GET(request: Request) {
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw error;
-    const { data: role, error: roleError } = await db
-      .from("administrators")
-      .select("user_id")
-      .eq("user_id", who!.id)
-      .maybeSingle();
-    if (roleError) throw roleError;
     return json({
-      isAdmin: !!role,
+      isAdmin: await administratorAccess(who!),
       reviews: await Promise.all(
         data.map(async (r) => ({
           ...r,

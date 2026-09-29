@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
+import { verifiedAdministratorEmail } from "@/lib/admin-identity";
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -72,15 +73,20 @@ export async function user(request: Request, required = false) {
     throw new ApiError(401, "Your session has expired. Please sign in again.");
   return data.user;
 }
+export async function administratorAccess(who: User) {
+  const email = verifiedAdministratorEmail(who);
+  if (!email) return false;
+  const db = service();
+  const { data, error } = await db.from("administrators").select("user_id").eq("user_id", who.id).maybeSingle();
+  if (error) throw error;
+  if (data) return true;
+  const { data: claimed, error: claimError } = await db.rpc("claim_administrator_reservation", {p_user_id: who.id, p_verified_email: email});
+  if (claimError) throw claimError;
+  return claimed === true;
+}
 export async function admin(request: Request) {
   const who = await user(request, true);
-  const { data, error } = await service()
-    .from("administrators")
-    .select("user_id")
-    .eq("user_id", who!.id)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data || !who!.email_confirmed_at)
+  if (!await administratorAccess(who!))
     throw new ApiError(403, "This account does not have administrator access.");
   return who!;
 }

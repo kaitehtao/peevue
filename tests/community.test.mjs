@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { submissionSchema, areaFor, inVegas, todayInVegas } from "../lib/community.ts";
 import { sanitizeJpeg } from "../lib/photo.ts";
+import { verifiedAdministratorEmail } from "../lib/admin-identity.ts";
 const db = new PGlite();
 const actor = "11111111-1111-4111-8111-111111111111";
 const reviewer = "22222222-2222-4222-8222-222222222222";
@@ -43,6 +44,7 @@ await db.exec(
     "utf8",
   ),
 );
+await db.exec(await readFile(new URL('../supabase/migrations/20260929040527_administrator_email_reservations.sql', import.meta.url), 'utf8'));
 await db.query("insert into auth.users(id) values($1),($2)", [actor, reviewer]);
 await db.query("insert into administrators(user_id) values($1)", [actor]);
 after(() => db.close());
@@ -210,4 +212,21 @@ test("persistent quotas reject excess requests and reset after expiry", async ()
 test("visit dates use Las Vegas time around midnight UTC", () => {
   assert.equal(todayInVegas(new Date("2026-09-29T03:00:00Z")), "2026-09-28");
   assert.equal(todayInVegas(new Date("2026-09-29T10:00:00Z")), "2026-09-29");
+});
+
+test("administrator reservations require verified identity and cannot be claimed by browser roles", async () => {
+  assert.equal(verifiedAdministratorEmail({email:"ADMIN@example.test",email_confirmed_at:"2026-01-01",is_anonymous:false}),"admin@example.test");
+  assert.equal(verifiedAdministratorEmail({email:"admin@example.test",email_confirmed_at:undefined}),null);
+  assert.equal(verifiedAdministratorEmail({email:"admin@example.test",email_confirmed_at:"2026-01-01",is_anonymous:true}),null);
+  assert.equal(verifiedAdministratorEmail({email:undefined,email_confirmed_at:"2026-01-01"}),null);
+  await db.query("insert into administrator_reservations(email) values($1)",["admin@example.test"]);
+  for (const role of ["anon","authenticated"]) {
+    await assert.rejects(asRole(role,"select * from administrator_reservations"),/permission denied/);
+    await assert.rejects(asRole(role,"select claim_administrator_reservation($1,$2)",[reviewer,"admin@example.test"]),/permission denied/);
+  }
+  assert.equal((await asRole("service_role","select claim_administrator_reservation($1,$2) as claimed",[reviewer,"other@example.test"])).rows[0].claimed,false);
+  assert.equal((await asRole("service_role","select claim_administrator_reservation($1,$2) as claimed",[reviewer,"ADMIN@example.test"])).rows[0].claimed,true);
+  assert.equal((await db.query("select * from administrator_reservations")).rows.length,0);
+  await db.query("delete from administrators where user_id=$1",[reviewer]);
+  assert.equal((await asRole("service_role","select claim_administrator_reservation($1,$2) as claimed",[reviewer,"admin@example.test"])).rows[0].claimed,false);
 });

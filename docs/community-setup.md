@@ -7,7 +7,7 @@
 - API URL: `https://tiadxpijawiiljzybydl.supabase.co`.
 - `community_accounts` migration applied successfully through the Supabase connector.
 - Browser roles lack direct review read/write and moderation privileges. Security advisor reports only the expected six INFO notices for server-only tables with RLS and no client policies.
-- Still pending: confirmed admin email/account; Auth URL and email sender configuration; server secret binding in Cloudflare; hosted end-to-end validation; merge/deploy PR #1.
+- Two owner-specified administrator email reservations are stored privately in Supabase. Neither account exists yet. Still pending: verified admin accounts; Auth URL and email sender configuration; server secret binding in Cloudflare; hosted end-to-end validation; merge/deploy PR #1.
 - Dashboard setup was interrupted by an unavailable browser security check. Retry normal dashboard access when available; do not bypass the security control.
 
 ## Resources
@@ -19,7 +19,7 @@ The app deliberately returns an empty, closed-submission state until all three S
 ## Database and private photos
 
 1. Apply `supabase/migrations/20260929034126_community_accounts.sql` to the dedicated project with the Supabase migration tool.
-2. Verify RLS is enabled on all six tables and browser roles have no grants. This application uses a server-only data API; `anon` and `authenticated` are intentionally denied direct table and storage access.
+2. Verify RLS is enabled on all seven tables and browser roles have no grants. This application uses a server-only data API; `anon` and `authenticated` are intentionally denied direct table and storage access.
 3. Verify `review-photos` is a private bucket, JPEG-only, 2 MB maximum. Never turn it public. The Worker serves a photo only while an approved review references it. Account and admin pages receive private URLs that expire after five minutes.
 4. Run the Supabase security advisor. RLS-with-no-policy notices are expected for these server-only tables; investigate other warnings.
 
@@ -34,14 +34,11 @@ The app deliberately returns an empty, closed-submission state until all three S
 
 ## Administrator
 
-The owner must specify an administrator email. Have that person create and verify their PEEVUE account. Assign the role by verified user ID, never user-editable metadata or the first person to sign up:
+The owner has specified two administrator email addresses, stored only in the private `administrator_reservations` table. The `administrator_email_reservations` migration has been applied. Do not commit personal email addresses to this repository.
 
-```sql
--- Substitute the explicitly authorized email and inspect this result first.
-select id, email, email_confirmed_at from auth.users where lower(email) = lower('OWNER_EMAIL');
--- Only after checking identity and email confirmation:
-insert into public.administrators(user_id) values ('VERIFIED_USER_UUID');
-```
+After signing up and verifying an authorized email, the account claims its one-time reservation on `/account` or `/admin`. The Worker verifies the identity with Supabase `getUser`, requires `email_confirmed_at`, rejects anonymous identities, and then invokes a service-role-only transaction that creates membership and consumes the reservation. User metadata never grants authority. Consuming the reservation ensures deleting an admin membership does not re-grant access at the next login.
+
+Additional reservations require explicit owner authorization and server-side insertion. Browser roles cannot list or modify reservations or call the claim function. Existing administrator memberships remain keyed to the verified user ID.
 
 The `/admin` API verifies the access token with Supabase and checks the administrator table for every request. Decisions are transactional, audited, and protected against stale approvals. Removing an approved review immediately removes its public API access; previously issued private image URLs expire within five minutes.
 
