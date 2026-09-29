@@ -423,6 +423,7 @@ export default function Home() {
                     </div>
                     <small>Visited {r.visited}</small>
                     <p>{r.body}</p>
+                    {r.passcode && <p>Bathroom passcode: <code className="bathroom-passcode">{r.passcode}</code><small className="passcode-note">Reported for this visit. Codes may change; ask staff if needed.</small></p>}
                     <div className="review-photos">
                       {r.photos.map((src) => (
                         <a

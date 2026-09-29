@@ -105,6 +105,7 @@ export function Submission({
         name: fields.get("name"),
         rating: Number(rating),
         body: fields.get("body"),
+        passcode: fields.get("passcode") || "",
         visited: fields.get("visited"),
         consent: fields.get("consent") === "on",
         website: fields.get("website") || "",
@@ -229,6 +230,11 @@ export function Submission({
                 />
               </label>
             </div>
+            <label>
+              Bathroom passcode <small>(optional)</small>
+              <input name="passcode" type="text" maxLength={40} autoComplete="off" placeholder="e.g. 0123#" aria-describedby="passcode-help"/>
+              <small id="passcode-help" className="photo-rule">Share a bathroom door code if one is needed. It will appear with your review after approval.</small>
+            </label>
             <label>
               Your review
               <textarea

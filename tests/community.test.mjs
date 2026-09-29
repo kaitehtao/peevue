@@ -45,6 +45,7 @@ await db.exec(
   ),
 );
 await db.exec(await readFile(new URL('../supabase/migrations/20260929040527_administrator_email_reservations.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20260929060047_review_bathroom_passcodes.sql', import.meta.url), 'utf8'));
 await db.query("insert into auth.users(id) values($1),($2)", [actor, reviewer]);
 await db.query("insert into administrators(user_id) values($1)", [actor]);
 after(() => db.close());
@@ -229,4 +230,21 @@ test("administrator reservations require verified identity and cannot be claimed
   assert.equal((await db.query("select * from administrator_reservations")).rows.length,0);
   await db.query("delete from administrators where user_id=$1",[reviewer]);
   assert.equal((await asRole("service_role","select claim_administrator_reservation($1,$2) as claimed",[reviewer,"admin@example.test"])).rows[0].claimed,false);
+});
+
+test("bathroom passcodes stay optional and preserve leading zeros and keypad symbols", () => {
+  assert.equal(submissionSchema.parse(input).passcode, "");
+  assert.equal(submissionSchema.parse({...input,passcode:" 0123#* "}).passcode,"0123#*");
+  assert.equal(submissionSchema.safeParse({...input,passcode:"x".repeat(41)}).success,false);
+});
+test("moderation can edit and clear passcodes without bypassing approval", async () => {
+  const reviewId="99999999-9999-4999-8999-999999999999";
+  await insert(reviewId);
+  await db.query("update community_reviews set passcode=$1 where id=$2",["0012#",reviewId]);
+  assert.equal((await current(reviewId)).status,"pending");
+  assert.equal((await db.query("select id from community_reviews where status='approved' and id=$1",[reviewId])).rows.length,0);
+  await asRole("service_role","select moderate_review($1,$2,$3,$4,$5,$6,$7,$8)",[reviewId,actor,(await current(reviewId)).updated_at,"approved","Checked",[],JSON.stringify(venue),"0042*"]);
+  assert.equal((await current(reviewId)).passcode,"0042*");
+  await asRole("service_role","select moderate_review($1,$2,$3,$4,$5,$6,$7,$8)",[reviewId,actor,(await current(reviewId)).updated_at,"approved","Withheld code",[],JSON.stringify(venue),""]);
+  assert.equal((await current(reviewId)).passcode,"");
 });

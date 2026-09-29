@@ -8,6 +8,7 @@ type OwnReview = {
   display_name: string;
   rating: number;
   body: string;
+  passcode: string;
   visited: string;
   status: string;
   moderation_note: string;
@@ -199,6 +200,7 @@ export default function Account() {
                       {r.rating}/5 cleanliness · Visited {r.visited}
                     </p>
                     <p>{r.body}</p>
+                    {r.passcode && <p>Bathroom passcode: <code className="bathroom-passcode">{r.passcode}</code></p>}
                     {r.moderation_note && (
                       <p className="location-message">
                         Moderator note: {r.moderation_note}

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const { data, error } = await service()
       .from("community_reviews")
       .select(
-        "id,venue_id,display_name,rating,body,visited,created_at,updated_at,photo_keys,status,moderation_note,proposed_venue,venues(*)",
+        "id,venue_id,display_name,rating,body,passcode,visited,created_at,updated_at,photo_keys,status,moderation_note,proposed_venue,venues(*)",
       )
       .eq("status", status)
       .order("created_at", { ascending: false })
@@ -42,6 +42,7 @@ const action = z.object({
   updatedAt: z.string().max(100),
   status: z.enum(["approved", "rejected"]),
   note: z.string().trim().max(500),
+  passcode: z.string().trim().max(40).optional(),
   photos: z.array(z.string().regex(/^[0-9a-f-]{36}\.jpg$/i)).max(3),
   venue: venueSchema,
 });
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
       p_note: p.note,
       p_photos: p.photos,
       p_venue: p.venue,
+      p_passcode: p.passcode ?? null,
     });
     if (error) {
       if (error.message.includes("changed"))

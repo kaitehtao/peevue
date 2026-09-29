@@ -64,6 +64,7 @@ export const submissionSchema = z
     name: text(2, 50),
     rating: z.number().int().min(1).max(5),
     body: text(10, 1500),
+    passcode: z.string().trim().max(40, "Bathroom passcodes must be 40 characters or fewer.").default(""),
     visited: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -96,6 +97,7 @@ export type Review = {
   name: string;
   rating: number;
   body: string;
+  passcode: string;
   visited: string;
   createdAt: string;
   photos: string[];

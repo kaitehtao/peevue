@@ -10,6 +10,7 @@ type Entry = {
   display_name: string;
   rating: number;
   body: string;
+  passcode: string;
   visited: string;
   created_at: string;
   status: string;
@@ -28,6 +29,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
   const [venue, setVenue] = useState<VenueInput>(initial),
     [photos, setPhotos] = useState(entry.photo_keys),
     [note, setNote] = useState(entry.moderation_note),
+    [passcode, setPasscode] = useState(entry.passcode || ""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function decide(e: FormEvent<HTMLFormElement>) {
@@ -47,6 +49,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
           updatedAt: entry.updated_at,
           status,
           note,
+          passcode,
           photos,
           venue,
         }),
@@ -72,6 +75,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
       </p>
       <p className="review-text">{entry.body}</p>
       <form className="review-form" onSubmit={decide}>
+        <label>Bathroom passcode <small>(optional)</small><input type="text" maxLength={40} autoComplete="off" value={passcode} onChange={e=>setPasscode(e.target.value)}/><small className="photo-rule">Published with this review. Clear the field to withhold the code.</small></label>
         <details>
           <summary>Verify or correct bathroom details</summary>
           <VenueFields value={venue} onChange={setVenue} />

@@ -19,7 +19,7 @@ export async function GET() {
     const { data: reviews, error } = await db
       .from("community_reviews")
       .select(
-        "id,venue_id,display_name,rating,body,visited,created_at,photo_keys",
+        "id,venue_id,display_name,rating,body,passcode,visited,created_at,photo_keys",
       )
       .eq("status", "approved")
       .order("created_at", { ascending: false })
@@ -38,6 +38,7 @@ export async function GET() {
         name: r.display_name,
         rating: r.rating,
         body: r.body,
+        passcode: r.passcode,
         visited: r.visited,
         createdAt: r.created_at,
         photos: r.photo_keys.map((k: string) => "/api/photos/" + k),
@@ -146,6 +147,7 @@ export async function POST(request: Request) {
         display_name: input.name,
         rating: input.rating,
         body: input.body,
+        passcode: input.passcode,
         visited: input.visited,
         photo_keys: uploaded,
         status: "pending",
