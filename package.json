@@ -13,9 +13,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
-    "deploy": "npm run build && wrangler d1 migrations apply DB --remote && wrangler deploy",
-    "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
+    "deploy": "npm run build && npm run db:migrate:remote && wrangler deploy --config dist/server/wrangler.json",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local --config wrangler.jsonc",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote --config wrangler.jsonc"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

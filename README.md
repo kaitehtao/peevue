@@ -38,7 +38,7 @@ GitHub Actions validates pushes and pull requests. For automatic production depl
 - Production branch: `main`
 - Root directory: repository root
 - Build command: `npm run build`
-- Deploy command: `npm run db:migrate:remote && npx wrangler deploy`
+- Deploy command: `npm run db:migrate:remote && npx wrangler deploy --config dist/server/wrangler.json`
 
 Do not connect preview branch deployments to the production database; give previews separate resources. Automatic deployment must be configured in the Cloudflare dashboard; it is not established by this repository alone.
 
