@@ -31,6 +31,14 @@ The app deliberately returns an empty, closed-submission state until all three S
 
 ## Supabase Auth
 
+### Google sign-in (activation pending)
+
+The account page supports Continue with Google. It checks the project's public Auth settings and only enables the button when the Google provider is enabled. Google OAuth client credentials must remain in Supabase, never in website source or public variables. Provider enablement is not proof of a successful end-to-end login; verify the full redirect flow before declaring it ready.
+
+Create a dedicated PEEVUE Web application OAuth client in Google Auth Platform. Configure the consent screen for public users and basic identity only. Use origins `https://peevue.com` and `https://www.peevue.com`, and the authorized redirect URI `https://tiadxpijawiiljzybydl.supabase.co/auth/v1/callback`. Enter the client ID and secret in the dedicated PEEVUE Supabase project's Google provider settings. Complete Google's publishing requirements so sign-in is not restricted to test users. Keep nonce and email verification protections enabled.
+
+Supabase Site URL and both `/account` return URLs below were saved and verified in the dashboard. Google setup and end-to-end login remain pending; dashboard network access failed during setup. Google sign-in does not require the app to send a signup confirmation email. Password signup and password reset still need working email delivery.
+
 - Site URL: `https://peevue.com`.
 - Redirect allowlist: `https://peevue.com/account`, `https://www.peevue.com/account`.
 - Email/password authentication with email confirmation enabled. Minimum password length 12.

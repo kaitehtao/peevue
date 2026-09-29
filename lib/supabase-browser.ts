@@ -35,3 +35,20 @@ export async function memberFetch(url: string, options: RequestInit = {}) {
     headers.set(key, value);
   return fetch(url, { ...options, headers });
 }
+
+export async function googleSignInAvailable(): Promise<boolean> {
+  const response = await fetch("/api/config");
+  const config = (await response.json()) as {
+    enabled: boolean;
+    url: string;
+    key: string;
+  };
+  if (!response.ok || !config.enabled) return false;
+  const settings = await fetch(`${config.url}/auth/v1/settings`, {
+    headers: { apikey: config.key },
+    cache: "no-store",
+  });
+  if (!settings.ok) return false;
+  const data = (await settings.json()) as { external?: { google?: boolean } };
+  return data.external?.google === true;
+}

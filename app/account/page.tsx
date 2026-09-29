@@ -2,7 +2,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { User } from "@supabase/supabase-js";
 import { Header, Footer } from "@/components/community/header";
-import { browserClient, memberFetch } from "@/lib/supabase-browser";
+import { browserClient, googleSignInAvailable, memberFetch } from "@/lib/supabase-browser";
 type OwnReview = {
   id: string;
   display_name: string;
@@ -26,6 +26,30 @@ export default function Account() {
     [message, setMessage] = useState(""),
     [reviews, setReviews] = useState<OwnReview[]>([]),
     [isAdmin, setIsAdmin] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    googleSignInAvailable()
+      .then((available) => { if (live) setGoogleEnabled(available); })
+      .catch(() => { if (live) setGoogleEnabled(false); });
+    return () => { live = false; };
+  }, []);
+  async function signInWithGoogle() {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const client = await browserClient();
+      const { error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin + "/account" },
+      });
+      if (error) throw error;
+    } catch {
+      setError("Google sign-in could not start. Please try again or submit a review as a guest.");
+      setBusy(false);
+    }
+  }
   async function load() {
     try {
       const r = await memberFetch("/api/me");
@@ -224,6 +248,25 @@ export default function Account() {
             </>
           ) : (
             <section className="account-box">
+              {mode !== "recovery" && (
+                <div>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || googleEnabled !== true}
+                    onClick={signInWithGoogle}
+                  >
+                    Continue with Google
+                  </button>
+                  <p role="status">
+                    {googleEnabled === null
+                      ? "Checking Google sign-in…"
+                      : googleEnabled
+                        ? "Use your Google account to sign in or join PEEVUE."
+                        : "Google sign-in is not available yet. You can still submit a review as a guest."}
+                  </p>
+                </div>
+              )}
               <div className="chips">
                 {[
                   ["signin", "Sign in"],
