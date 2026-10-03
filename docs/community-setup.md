@@ -1,20 +1,20 @@
 # Community deployment runbook
 
-## Provisioning status (2026-09-29)
+## Provisioning status (2026-10-03)
 
 - Organization: PEEVUE, `fhoqlbbpqhkjubkwecxe`, Free plan.
 - Project: PEEVUE, `tiadxpijawiiljzybydl`, US West (us-west-1), Free project quote $0/month confirmed by owner.
 - API URL: `https://tiadxpijawiiljzybydl.supabase.co`.
 - `community_accounts` migration applied successfully through the Supabase connector.
 - Browser roles lack direct review read/write and moderation privileges. Security advisor reports only the expected seven INFO notices for server-only tables with RLS and no client policies.
-- Two owner-specified administrator email reservations are stored privately in Supabase. Neither account exists yet. Still pending: verified admin accounts; Google provider activation or email sender configuration; Auth and submission end-to-end validation. Auth URLs are saved and PR #1 is merged.
-- Dashboard access recovered. Dedicated Google Cloud project PEEVUE (`lustrous-vertex-510107-r2`) is created; app consent setup awaits the owner's support-email choice.
+- Two owner-specified administrator email reservations were provisioned privately. The primary owner completed Google sign-in and successfully opened the admin moderation queue. The second administrator and submission/upload/moderation roundtrip still need validation. Auth URLs are saved and PR #1 is merged.
+- Dedicated Google Cloud project PEEVUE (`lustrous-vertex-510107-r2`) has a Web OAuth client. Credentials are stored only in Supabase; the Google provider is enabled and Google audience is External / In production. Owner-selected support and developer contact are configured. Public privacy page: https://peevue.com/privacy.
 
 ## Cloudflare connection verification
 
 All three Supabase bindings are now saved on the `peevue` Worker, including the server secret entered by the owner. Preview version `1d8db4dd-5b9d-4aa7-9ddc-0175a16e4e26` (release code commit `5300736`) successfully returned HTTP 200 from `/api/reviews` with an empty real database and contributions enabled. `/api/config` confirms the dedicated PEEVUE project; `/api/admin` and `/api/me` return HTTP 401 without a session. No credentials were printed or committed.
 
-Production release `4f30c62` is merged to GitHub main and deployed to peevue.com and www.peevue.com as Cloudflare version `0bbee1bf-4a13-48b6-af07-89bc1f27b3a2`. Live root and account pages return 200, real review reads return 200 with contributions enabled, and unsigned admin/account API requests return 401. Nine automated tests, typecheck, and build passed. Google provider activation, email delivery for password accounts, administrator verification, and hosted write/upload/moderation roundtrip testing remain pending.
+Production code commit `9656549` is on GitHub main and deployed to peevue.com and www.peevue.com as Cloudflare version `2d3bd4e0-bf22-49bf-84e0-6c8b47a98279`. Typecheck and build passed for the privacy page/footer update. The prior account release passed eleven automated tests. The live privacy page renders, and the Google sign-in flow returned to the account dashboard with the primary owner authenticated and admin access confirmed. Password email delivery and hosted submission/upload/moderation roundtrip testing remain pending.
 
 ## Resources
 
@@ -31,13 +31,13 @@ The app deliberately returns an empty, closed-submission state until all three S
 
 ## Supabase Auth
 
-### Google sign-in (activation pending)
+### Google sign-in (enabled and public)
 
 The account page supports Continue with Google. It checks the project's public Auth settings and only enables the button when the Google provider is enabled. Google OAuth client credentials must remain in Supabase, never in website source or public variables. Provider enablement is not proof of a successful end-to-end login; verify the full redirect flow before declaring it ready.
 
-Create a dedicated PEEVUE Web application OAuth client in Google Auth Platform. Configure the consent screen for public users and basic identity only. Use origins `https://peevue.com` and `https://www.peevue.com`, and the authorized redirect URI `https://tiadxpijawiiljzybydl.supabase.co/auth/v1/callback`. Enter the client ID and secret in the dedicated PEEVUE Supabase project's Google provider settings. Complete Google's publishing requirements so sign-in is not restricted to test users. Keep nonce and email verification protections enabled.
+The dedicated PEEVUE Web application OAuth client is configured for public users and basic identity only. When recreating the configuration: Use origins `https://peevue.com` and `https://www.peevue.com`, and the authorized redirect URI `https://tiadxpijawiiljzybydl.supabase.co/auth/v1/callback`. Enter the client ID and secret in the dedicated PEEVUE Supabase project's Google provider settings. Complete Google's publishing requirements so sign-in is not restricted to test users. Keep nonce and email verification protections enabled.
 
-Supabase Site URL and both `/account` return URLs below were saved and verified in the dashboard. Google setup and end-to-end login remain pending; the dedicated Google project is created and consent-screen configuration is in progress. Google sign-in does not require the app to send a signup confirmation email. Password signup and password reset still need working email delivery.
+Supabase Site URL and both `/account` return URLs below were saved and verified in the dashboard. Google setup and the root-domain end-to-end login are verified. Google reports the app In production; the successful login requested only email and profile. Google sign-in does not require the app to send a signup confirmation email. Password signup and password reset still need working email delivery.
 
 - Site URL: `https://peevue.com`.
 - Redirect allowlist: `https://peevue.com/account`, `https://www.peevue.com/account`.
