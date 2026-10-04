@@ -92,3 +92,12 @@ After provisioning, verify using disposable test records: guest review with phot
 ## Initial scope and operating limits
 
 The public response currently includes up to 1,000 newest approved reviews; account/admin views include 100 newest records. Add pagination and database aggregates before those limits are reached. Signed private photos may need a page refresh after five minutes. Admins can correct venue details, reject reviews, and exclude photos; account deletion, appeals/reporting, venue merging beyond exact normalized name/address matching, and retained-photo cleanup are follow-up operations. Excluded images remain private and require a retention cleanup policy. Historic sample D1/R2 data is not imported or deleted.
+
+
+## Bathrooms within properties (2026-10-04)
+
+The `property_bathrooms` migration is applied to production. `venues` represent properties; `bathrooms` identify a floor/area and type within each property. Every new submission selects an existing bathroom or proposes a new one. Moderation creates or reuses bathrooms by property, normalized location, and type. A composite foreign key prevents cross-property assignments. Bathroom records use server-only privileges and RLS, like reviews.
+
+The public property page provides separate bathroom ratings and review filters, including each bathroom's photos and review passcodes. Account history and moderation include bathroom identity. Property ratings remain aggregates across approved bathroom reviews. Only bathrooms with approved reviews appear publicly. Legacy records are preserved under “Location not specified / Not specified”; no location or gender is guessed. Editing an existing bathroom in moderation updates its label for all its reviews.
+
+Validation: twelve automated tests pass, including location/type separation, same-bathroom reuse, cross-property rejection, and browser-role denial. Typecheck and production build passed. Public submission form verified on peevue.com after deployment. No fictional reviews were published for testing.

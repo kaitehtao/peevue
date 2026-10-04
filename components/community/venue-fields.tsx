@@ -123,9 +123,9 @@ export function VenueFields({
   }
   return (
     <fieldset className="venue-fields">
-      <legend>Where is the bathroom?</legend>
+      <legend>Property location</legend>
       <label>
-        Business or bathroom name
+        Hotel, restaurant, or building name
         <input
           required
           minLength={2}
@@ -229,7 +229,7 @@ export function VenueFields({
         </label>
       </div>
       <label>
-        Who can use it?
+        General property access
         <select
           value={value.access}
           onChange={(e) =>
