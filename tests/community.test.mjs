@@ -25,6 +25,7 @@ const input = {
   id,
   venueId: null,
   venue,
+  bathroom:{location:"Lobby",gender:"Unisex"},
   name: "Reviewer",
   rating: 4,
   body: "Clean sinks and stocked soap.",
@@ -46,6 +47,7 @@ await db.exec(
 );
 await db.exec(await readFile(new URL('../supabase/migrations/20260929040527_administrator_email_reservations.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20260929060047_review_bathroom_passcodes.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261004000100_property_bathrooms.sql', import.meta.url), 'utf8'));
 await db.query("insert into auth.users(id) values($1),($2)", [actor, reviewer]);
 await db.query("insert into administrators(user_id) values($1)", [actor]);
 after(() => db.close());
@@ -247,4 +249,23 @@ test("moderation can edit and clear passcodes without bypassing approval", async
   assert.equal((await current(reviewId)).passcode,"0042*");
   await asRole("service_role","select moderate_review($1,$2,$3,$4,$5,$6,$7,$8)",[reviewId,actor,(await current(reviewId)).updated_at,"approved","Withheld code",[],JSON.stringify(venue),""]);
   assert.equal((await current(reviewId)).passcode,"");
+});
+
+test("bathrooms separate locations and types within one property and enforce ownership", async () => {
+ const ids=["a1111111-1111-4111-8111-111111111111","a2222222-2222-4222-8222-222222222222","a3333333-3333-4333-8333-333333333333","a4444444-4444-4444-8444-444444444444"];
+ const rooms=[{location:"Lobby",gender:"Men’s"},{location:"Lobby",gender:"Women’s"},{location:"Second floor",gender:"Unisex"},{location:" lobby ",gender:"Men’s"}];
+ for(let i=0;i<ids.length;i++) {
+  await insert(ids[i]);
+  await asRole("service_role","select moderate_review($1,$2,$3,'approved','Checked',$4,$5,null,$6)",[ids[i],actor,(await current(ids[i])).updated_at,[],JSON.stringify(venue),JSON.stringify(rooms[i])]);
+ }
+ const rows=await Promise.all(ids.map(current));
+ assert.equal(new Set(rows.map(r=>r.venue_id)).size,1);
+ assert.equal(new Set(rows.map(r=>r.bathroom_id)).size,3);
+ assert.equal(rows[0].bathroom_id,rows[3].bathroom_id);
+ for(const role of ["anon","authenticated"]) await assert.rejects(asRole(role,"select * from bathrooms"),/permission denied/);
+ const other=(await db.query("insert into venues(name,address,area,type,access,location_source) values('Other','999 Other Road','Las Vegas area','Other','Ask staff','manual') returning id")).rows[0];
+ await assert.rejects(db.query("update community_reviews set venue_id=$1 where id=$2",[other.id,ids[0]]),/foreign key/);
+ assert.equal(submissionSchema.safeParse({...input,bathroom:null}).success,false);
+ assert.equal(submissionSchema.safeParse({...input,bathroom:{location:'',gender:'Unisex'}}).success,false);
+ assert.equal(submissionSchema.safeParse({...input,bathroomId:ids[0]}).success,false);
 });

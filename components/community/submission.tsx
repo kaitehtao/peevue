@@ -10,6 +10,8 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ratingLabels, todayInVegas, type Venue } from "@/lib/community";
 import { browserClient, sessionHeaders } from "@/lib/supabase-browser";
+import { BathroomFields } from "./bathroom-fields";
+import type { BathroomInput } from "@/lib/community";
 import { blankVenue, VenueFields } from "./venue-fields";
 async function compress(file: File) {
   if (
@@ -45,16 +47,20 @@ async function compress(file: File) {
 export function Submission({
   venues,
   initialVenue,
+  initialBathroom,
   enabled,
   onClose,
   onSuccess,
 }: {
   venues: Venue[];
   initialVenue?: string;
+  initialBathroom?: string;
   enabled: boolean;
   onClose: () => void;
   onSuccess: (id: string) => void;
 }) {
+  const [bathroomId, setBathroomId] = useState(initialBathroom || "new");
+  const [bathroom, setBathroom] = useState<BathroomInput>({location:"",gender:"Not specified"});
   const [venueId, setVenueId] = useState(initialVenue || "new"),
     [venue, setVenue] = useState({ ...blankVenue }),
     [rating, setRating] = useState(""),
@@ -102,6 +108,8 @@ export function Submission({
         id,
         venueId: venueId === "new" ? null : venueId,
         venue: venueId === "new" ? venue : null,
+        bathroomId: bathroomId === "new" ? null : bathroomId,
+        bathroom: bathroomId === "new" ? bathroom : null,
         name: fields.get("name"),
         rating: Number(rating),
         body: fields.get("body"),
@@ -159,12 +167,12 @@ export function Submission({
               )}
             </p>
             <label>
-              Bathroom
+              Property or facility
               <select
                 value={venueId}
-                onChange={(e) => setVenueId(e.target.value)}
+                onChange={(e) => {setVenueId(e.target.value);setBathroomId("new");}}
               >
-                <option value="new">Add a new bathroom</option>
+                <option value="new">Add a new property</option>
                 {venues.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name} · {v.area}
@@ -177,6 +185,8 @@ export function Submission({
             ) : (
               <p>{venues.find((v) => v.id === venueId)?.address}</p>
             )}
+            <label>Choose a bathroom<select value={bathroomId} onChange={e=>setBathroomId(e.target.value)}><option value="new">Add another bathroom at this property</option>{(venues.find(v=>v.id===venueId)?.bathrooms || []).map(b=><option key={b.id} value={b.id}>{b.location} · {b.gender}</option>)}</select></label>
+            {bathroomId === "new" && <BathroomFields value={bathroom} onChange={setBathroom}/>}
             <fieldset>
               <legend>How clean was it?</legend>
               <RadioGroup

@@ -3,9 +3,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Header, Footer } from "@/components/community/header";
 import { VenueFields } from "@/components/community/venue-fields";
 import { memberFetch } from "@/lib/supabase-browser";
-import type { VenueInput } from "@/lib/community";
+import { BathroomFields } from "@/components/community/bathroom-fields";
+import type { BathroomInput, VenueInput } from "@/lib/community";
 type Entry = {
   id: string;
+  bathrooms: BathroomInput | null;
+  proposed_bathroom: BathroomInput | null;
   updated_at: string;
   display_name: string;
   rating: number;
@@ -26,6 +29,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
   const initial = entry.venues
     ? { ...entry.venues, locationSource: entry.venues.location_source }
     : entry.proposed_venue;
+  const [bathroom,setBathroom] = useState<BathroomInput>(entry.bathrooms || entry.proposed_bathroom || {location:"Location not specified",gender:"Not specified"});
   const [venue, setVenue] = useState<VenueInput>(initial),
     [photos, setPhotos] = useState(entry.photo_keys),
     [note, setNote] = useState(entry.moderation_note),
@@ -52,6 +56,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
           passcode,
           photos,
           venue,
+          bathroom,
         }),
       });
       const d = (await r.json()) as { error?: string; reviews: Entry[] };
@@ -75,12 +80,13 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
       </p>
       <p className="review-text">{entry.body}</p>
       <form className="review-form" onSubmit={decide}>
+        <BathroomFields value={bathroom} onChange={setBathroom}/>
         <label>Bathroom passcode <small>(optional)</small><input type="text" maxLength={40} autoComplete="off" value={passcode} onChange={e=>setPasscode(e.target.value)}/><small className="photo-rule">Published with this review. Clear the field to withhold the code.</small></label>
         <details>
-          <summary>Verify or correct bathroom details</summary>
+          <summary>Verify or correct property details</summary>
           <VenueFields value={venue} onChange={setVenue} />
           <p className="photo-rule">
-            Changes to an existing bathroom update its public listing.
+            Property changes apply to the whole facility. Bathroom changes apply only to this bathroom.
           </p>
         </details>
         {entry.photos.length > 0 && (

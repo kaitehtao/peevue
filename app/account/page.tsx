@@ -6,6 +6,8 @@ import { browserClient, googleSignInAvailable, memberFetch } from "@/lib/supabas
 import { accountError, displayName } from "@/lib/account";
 type OwnReview = {
   id: string;
+  bathrooms?: {location:string;gender:string} | null;
+  proposed_bathroom?: {location:string;gender:string} | null;
   display_name: string;
   rating: number;
   body: string;
@@ -257,6 +259,7 @@ export default function Account() {
                     <p>
                       {r.rating}/5 cleanliness · Visited {r.visited}
                     </p>
+                    <p><strong>{(r.bathrooms || r.proposed_bathroom)?.location || "Location not specified"} · {(r.bathrooms || r.proposed_bathroom)?.gender || "Not specified"}</strong></p>
                     <p>{r.body}</p>
                     {r.passcode && <p>Bathroom passcode: <code className="bathroom-passcode">{r.passcode}</code></p>}
                     {r.moderation_note && (

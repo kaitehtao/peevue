@@ -56,11 +56,17 @@ export const venueSchema = z
     (v) => v.locationSource !== "gps" || v.latitude !== null,
     "GPS location is missing.",
   );
+export const bathroomTypes = ["Men’s", "Women’s", "Unisex", "Family", "Not specified"] as const;
+export const bathroomSchema = z.object({ location: text(2, 120), gender: z.enum(bathroomTypes) });
+export type BathroomInput = z.infer<typeof bathroomSchema>;
+export type Bathroom = BathroomInput & { id: string; venueId: string; score: number; count: number; photos: string[] };
 export const submissionSchema = z
   .object({
     id: z.string().uuid(),
     venueId: z.string().uuid().nullable(),
     venue: venueSchema.nullable(),
+    bathroomId: z.string().uuid().nullable().default(null),
+    bathroom: bathroomSchema.nullable().default(null),
     name: text(2, 50),
     rating: z.number().int().min(1).max(5),
     body: text(10, 1500),
@@ -82,11 +88,13 @@ export const submissionSchema = z
   })
   .refine(
     (v) => v.venueId !== null || v.venue !== null,
-    "Add the bathroom address.",
-  );
+    "Add the property address.",
+  ).refine(v => !!v.bathroomId !== !!v.bathroom, "Choose a bathroom or describe a new one.")
+  .refine(v => !v.bathroomId || !!v.venueId, "Choose the bathroom’s property.");
 export type VenueInput = z.infer<typeof venueSchema>;
 export type Venue = VenueInput & {
   id: string;
+  bathrooms: Bathroom[];
   score: number;
   count: number;
   photos: string[];
@@ -94,6 +102,7 @@ export type Venue = VenueInput & {
 export type Review = {
   id: string;
   venueId: string | null;
+  bathroomId: string | null;
   name: string;
   rating: number;
   body: string;

@@ -38,7 +38,8 @@ export default function Home() {
     [accessible, setAccessible] = useState(false),
     [publicOnly, setPublicOnly] = useState(false),
     [detail, setDetail] = useState<Venue | null>(null),
-    [submission, setSubmission] = useState<{ venueId?: string } | null>(null);
+    [selectedBathroom, setSelectedBathroom] = useState("all"),
+    [submission, setSubmission] = useState<{ venueId?: string; bathroomId?: string } | null>(null);
   async function load() {
     setLoading(true);
     try {
@@ -77,9 +78,9 @@ export default function Home() {
     .sort((a, b) =>
       sort === "name" ? a.name.localeCompare(b.name) : b.score - a.score,
     );
-  function start(venueId?: string) {
+  function start(venueId?: string, bathroomId?: string) {
     setDetail(null);
-    setSubmission({ venueId });
+    setSubmission({ venueId, bathroomId });
     setSuccess("");
   }
   return (
@@ -218,7 +219,7 @@ export default function Home() {
                       <button
                         className="venue-card"
                         key={v.id}
-                        onClick={() => setDetail(v)}
+                        onClick={() => {setDetail(v);setSelectedBathroom("all");}}
                         aria-label={`View ${v.name}, cleanliness ${v.score.toFixed(1)} out of 5`}
                       >
                         <div className="venue-visual">
@@ -255,7 +256,7 @@ export default function Home() {
                           </div>
                           <div className="card-footer">
                             <span>
-                              {v.count} {v.count === 1 ? "review" : "reviews"}
+                              {v.bathrooms.length} bathrooms · {v.count} {v.count === 1 ? "review" : "reviews"}
                             </span>
                             <span>{v.access}</span>
                           </div>
@@ -388,7 +389,7 @@ export default function Home() {
                 <Toilet />
                 <strong>{detail.score.toFixed(1)}</strong>
                 <span>
-                  out of 5 for cleanliness
+                  out of 5 across this property’s bathrooms
                   <br />
                   <small>
                     {detail.count} community{" "}
@@ -407,11 +408,14 @@ export default function Home() {
               </p>
               <button className="primary" onClick={() => start(detail.id)}>
                 <PenLine size={17} />
-                Review this bathroom
+                Add a bathroom or review
               </button>
-              <h3 className="subheading">Community reviews</h3>
+              <h3 className="subheading">Bathrooms at this property</h3>
+              <div className="chips"><button className={"chip " + (selectedBathroom==="all"?"selected":"")} onClick={()=>setSelectedBathroom("all")}>All bathrooms</button>{detail.bathrooms.map(b=><button className={"chip " + (selectedBathroom===b.id?"selected":"")} key={b.id} onClick={()=>setSelectedBathroom(b.id)}>{b.location} · {b.gender} · {b.score.toFixed(1)}/5 ({b.count})</button>)}</div>
+              {selectedBathroom!=="all" && <button className="primary" onClick={()=>start(detail.id,selectedBathroom)}>Review this bathroom</button>}
+              <h3 className="subheading">{selectedBathroom==="all"?"All bathroom reviews":"Reviews for this bathroom"}</h3>
               {reviews
-                .filter((r) => r.venueId === detail.id)
+                .filter((r) => r.venueId === detail.id && (selectedBathroom==="all" || r.bathroomId===selectedBathroom))
                 .map((r) => (
                   <article className="review" key={r.id}>
                     <div>
@@ -421,7 +425,7 @@ export default function Home() {
                         {r.rating}/5
                       </span>
                     </div>
-                    <small>Visited {r.visited}</small>
+                    <p><strong>{detail.bathrooms.find(b=>b.id===r.bathroomId)?.location || "Location not specified"} · {detail.bathrooms.find(b=>b.id===r.bathroomId)?.gender || "Not specified"}</strong></p><small>Visited {r.visited}</small>
                     <p>{r.body}</p>
                     {r.passcode && <p>Bathroom passcode: <code className="bathroom-passcode">{r.passcode}</code><small className="passcode-note">Reported for this visit. Codes may change; ask staff if needed.</small></p>}
                     <div className="review-photos">
@@ -446,6 +450,7 @@ export default function Home() {
         <Submission
           venues={venues}
           initialVenue={submission.venueId}
+          initialBathroom={submission.bathroomId}
           enabled={enabled}
           onClose={() => setSubmission(null)}
           onSuccess={(id) => {

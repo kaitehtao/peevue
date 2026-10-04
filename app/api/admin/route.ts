@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { venueSchema } from "@/lib/community";
+import { venueSchema, bathroomSchema } from "@/lib/community";
 import {
   admin,
   ApiError,
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const { data, error } = await service()
       .from("community_reviews")
       .select(
-        "id,venue_id,display_name,rating,body,passcode,visited,created_at,updated_at,photo_keys,status,moderation_note,proposed_venue,venues(*)",
+        "id,venue_id,bathroom_id,proposed_bathroom,bathrooms(location,gender),display_name,rating,body,passcode,visited,created_at,updated_at,photo_keys,status,moderation_note,proposed_venue,venues(*)",
       )
       .eq("status", status)
       .order("created_at", { ascending: false })
@@ -45,6 +45,7 @@ const action = z.object({
   passcode: z.string().trim().max(40).optional(),
   photos: z.array(z.string().regex(/^[0-9a-f-]{36}\.jpg$/i)).max(3),
   venue: venueSchema,
+  bathroom: bathroomSchema,
 });
 export async function POST(request: Request) {
   try {
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
       p_note: p.note,
       p_photos: p.photos,
       p_venue: p.venue,
+      p_bathroom: p.bathroom,
       p_passcode: p.passcode ?? null,
     });
     if (error) {
