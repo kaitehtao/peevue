@@ -45,13 +45,22 @@ export const yelpUrlSchema = z.string().trim().max(500).default("").refine(value
   if (!value) return true;
   try { const u = new URL(value); return u.protocol === "https:" && ["yelp.com", "www.yelp.com", "m.yelp.com"].includes(u.hostname) && !u.username && !u.password && !u.port && /^\/biz\/[a-zA-Z0-9_%~-]+\/?$/.test(u.pathname); } catch { return false; }
 }, "Use a full Yelp business profile link, such as https://www.yelp.com/biz/business-name.").transform(value => value ? "https://www.yelp.com" + new URL(value).pathname.replace(/\/$/, "") : "");
+export const categorySchema = z.string().trim().transform(v=>v.replace(/\s+/g," ")).pipe(z.string().min(2,"Enter a category with at least 2 characters.").max(60,"Keep the category under 61 characters.").refine(v=>v.toLowerCase()!=="all places","Choose a specific category." )).transform(v=>placeTypes.find(t=>t.toLowerCase()===v.toLowerCase()) || v);
+export function categoryOptions(values: string[] = []) {
+  const options: string[] = [...placeTypes];
+  for (const value of values) {
+    const parsed=categorySchema.safeParse(value);
+    if(parsed.success && !options.some(t=>t.toLowerCase()===parsed.data.toLowerCase())) options.push(parsed.data);
+  }
+  return options;
+}
 export const venueSchema = z
   .object({
     name: text(2, 120),
     address: text(8, 250),
     yelpUrl: yelpUrlSchema,
     area: z.enum(neighborhoods),
-    type: z.enum(placeTypes),
+    type: categorySchema,
     access: z.enum(["Public access", "Customers only", "Ask staff"]),
     tags: z.array(z.enum(amenities)).max(3),
     latitude: z.number().min(35.8).max(36.5).nullable(),

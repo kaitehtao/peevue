@@ -20,7 +20,7 @@ import { Header, Footer } from "@/components/community/header";
 import { Submission } from "@/components/community/submission";
 import {
   neighborhoods,
-  placeTypes,
+  categoryOptions,
   type Venue,
   type Review,
 } from "@/lib/community";
@@ -71,7 +71,7 @@ export default function Home() {
           .toLowerCase()
           .includes(query.toLowerCase()) &&
         (area === "All neighborhoods" || v.area === area) &&
-        (type === "All places" || v.type === type) &&
+        (type === "All places" || v.type.toLowerCase() === type.toLowerCase()) &&
         (!accessible || v.tags.includes("Accessible")) &&
         (!publicOnly || v.access === "Public access"),
     )
@@ -174,7 +174,7 @@ export default function Home() {
               </select>
             </div>
             <div className="chips">
-              {["All places", ...placeTypes].map((t) => (
+              {["All places", ...categoryOptions(venues.map(v=>v.type))].map((t) => (
                 <button
                   key={t}
                   className={"chip " + (type === t ? "selected" : "")}

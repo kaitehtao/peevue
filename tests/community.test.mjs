@@ -2,7 +2,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
-import { submissionSchema, yelpUrlSchema, areaFor, inVegas, todayInVegas } from "../lib/community.ts";
+import { submissionSchema, categorySchema, categoryOptions, yelpUrlSchema, areaFor, inVegas, todayInVegas } from "../lib/community.ts";
 import { sanitizeJpeg } from "../lib/photo.ts";
 import { verifiedAdministratorEmail } from "../lib/admin-identity.ts";
 const db = new PGlite();
@@ -286,4 +286,14 @@ test("Yelp profiles publish only through approval and can be corrected or cleare
   assert.equal((await db.query("select yelp_url from venues where id=$1",[(await current(rid)).venue_id])).rows[0].yelp_url,url);
  }
  await assert.rejects(db.query("update venues set yelp_url='https://evil.test'"),/check constraint/);
+});
+
+test("custom categories are bounded, reusable, and normalize existing names",()=>{
+ assert.equal(categorySchema.parse("  Shopping   mall "),"Shopping mall");
+ assert.equal(categorySchema.parse(" school "),"School");
+ for(const v of ["", "a", "x".repeat(61), "All places"]) assert.equal(categorySchema.safeParse(v).success,false);
+ const options=categoryOptions(["Library","library","School"]);
+ assert.equal(options.filter(v=>v.toLowerCase()==="library").length,1);
+ assert.equal(options.filter(v=>v==="School").length,1);
+ assert.equal(submissionSchema.safeParse({...input,venue:{...venue,type:"Library"}}).success,true);
 });

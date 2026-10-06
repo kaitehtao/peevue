@@ -184,7 +184,7 @@ export function Submission({
               </select>
             </label>
             {venueId === "new" ? (
-              <VenueFields value={venue} onChange={setVenue} />
+              <VenueFields value={venue} onChange={setVenue} categories={venues.map(v=>v.type)} />
             ) : (
               <p>{venues.find((v) => v.id === venueId)?.address}</p>
             )}

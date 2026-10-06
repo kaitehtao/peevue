@@ -6,7 +6,7 @@ import {
   areaFor,
   inVegas,
   neighborhoods,
-  placeTypes,
+  categoryOptions,
   type VenueInput,
 } from "@/lib/community";
 export const blankVenue: VenueInput = {
@@ -30,10 +30,15 @@ type LocationResult = {
 export function VenueFields({
   value,
   onChange,
+  categories = [],
 }: {
   value: VenueInput;
+  categories?: string[];
   onChange: (v: VenueInput) => void;
 }) {
+  const options = categoryOptions(categories);
+  const [addingCategory,setAddingCategory] = useState(false);
+  const customCategory = addingCategory || !options.includes(value.type);
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [results, setResults] = useState<LocationResult[]>([]);
@@ -218,16 +223,18 @@ export function VenueFields({
         <label>
           Type of place
           <select
-            value={value.type}
+            value={customCategory ? "__new_category__" : value.type}
             onChange={(e) =>
-              set({ type: e.target.value as VenueInput["type"] })
+              {setAddingCategory(e.target.value === "__new_category__");set({type:e.target.value === "__new_category__" ? "" : e.target.value});}
             }
           >
-            {placeTypes.map((t) => (
+            {options.map((t) => (
               <option key={t}>{t}</option>
             ))}
+            <option value="__new_category__">Add new category…</option>
           </select>
         </label>
+        {customCategory && <label>New category name<input required minLength={2} maxLength={60} value={value.type} placeholder="e.g. Library or Shopping mall" onChange={e=>set({type:e.target.value})}/><small className="photo-rule">An administrator checks new categories before they appear publicly.</small></label>}
       </div>
       <label>
         General property access
