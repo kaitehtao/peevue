@@ -1,3 +1,5 @@
+import type {Metadata} from "next";
+export const metadata:Metadata={title:"Privacy Policy | PEEVUE",alternates:{canonical:"https://peevue.com/privacy"}};
 import { Header, Footer } from "@/components/community/header";
 
 export default function Privacy() {
