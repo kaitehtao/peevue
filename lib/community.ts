@@ -3,6 +3,9 @@ export const placeTypes = [
   "Restaurant",
   "Café",
   "Hotel & lounge",
+  "Condo",
+  "Apartment",
+  "Home",
   "Public restroom",
   "Other",
 ] as const;
