@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
+import { ReviewEditor } from "@/components/community/review-editor";
 import { Header, Footer } from "@/components/community/header";
 import { VenueFields } from "@/components/community/venue-fields";
 import { memberFetch } from "@/lib/supabase-browser";
@@ -81,6 +82,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
         Visited {entry.visited}
       </p>
       <p className="review-text">{entry.body}</p>
+      <ReviewEditor review={entry} admin onSaved={onDone}/>
       <form className="review-form" onSubmit={decide}>
         <YelpField value={venue.yelpUrl} onChange={yelpUrl=>setVenue({...venue,yelpUrl})}/>
         <BathroomFields value={bathroom} onChange={setBathroom}/>
@@ -239,7 +241,7 @@ export default function Admin() {
                 entry={entry}
                 onDone={() => {
                   setMessage(
-                    "Decision saved. The public site reflects the approved reviews.",
+                    "Changes saved. Approved reviews are reflected on the public site.",
                   );
                   void load();
                 }}

@@ -2,7 +2,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
-import { submissionSchema, categorySchema, categoryOptions, yelpUrlSchema, areaFor, inVegas, todayInVegas } from "../lib/community.ts";
+import { submissionSchema, editReviewSchema, categorySchema, categoryOptions, yelpUrlSchema, areaFor, inVegas, todayInVegas } from "../lib/community.ts";
 import { sanitizeJpeg } from "../lib/photo.ts";
 import { verifiedAdministratorEmail } from "../lib/admin-identity.ts";
 const db = new PGlite();
@@ -49,6 +49,8 @@ await db.exec(await readFile(new URL('../supabase/migrations/20260929040527_admi
 await db.exec(await readFile(new URL('../supabase/migrations/20260929060047_review_bathroom_passcodes.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20261004000100_property_bathrooms.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20261005000100_property_yelp_profiles.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261006000100_review_editing.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261006000200_five_review_photos.sql', import.meta.url), 'utf8'));
 await db.query("insert into auth.users(id) values($1),($2)", [actor, reviewer]);
 await db.query("insert into administrators(user_id) values($1)", [actor]);
 after(() => db.close());
@@ -296,4 +298,52 @@ test("custom categories are bounded, reusable, and normalize existing names",()=
  assert.equal(options.filter(v=>v.toLowerCase()==="library").length,1);
  assert.equal(options.filter(v=>v==="School").length,1);
  assert.equal(submissionSchema.safeParse({...input,venue:{...venue,type:"Library"}}).success,true);
+});
+
+test("only original authors or admins edit reviews, with moderation, photo ownership, audit and stale-write checks",async()=>{
+ const rid="c1111111-1111-4111-8111-111111111111",stranger="c2222222-2222-4222-8222-222222222222";
+ await db.query("insert into auth.users(id) values($1)",[stranger]);
+ await insert(rid);
+ await moderate(rid,actor,"approved",(await current(rid)).updated_at);
+ const content={name:"Updated reviewer",rating:3,body:"Updated review after another visit.",visited:"2026-01-02",passcode:"0099#"};
+ const edit=async(who,expected,keep=[photo],added=[])=>asRole("service_role","select edit_review($1,$2,$3,$4,$5,$6) as status",[rid,who,expected,JSON.stringify(content),keep,added]);
+ let before=await current(rid);
+ await assert.rejects(edit(stranger,before.updated_at),/Not allowed/);
+ await assert.rejects(edit(null,before.updated_at),/Not allowed/);
+ await assert.rejects(edit(reviewer,before.updated_at,["77777777-7777-4777-8777-777777777777.jpg"]),/Invalid photos/);
+ for(const role of ["anon","authenticated"]) {
+  await assert.rejects(asRole(role,"select edit_review($1,$2,$3,$4,$5,$6)",[rid,reviewer,before.updated_at,JSON.stringify(content),[],[]]),/permission denied/);
+  await assert.rejects(asRole(role,"select * from review_revisions"),/permission denied/);
+ }
+ assert.equal((await edit(reviewer,before.updated_at,[])).rows[0].status,"pending");
+ let updated=await current(rid);
+ assert.equal(updated.body,content.body);assert.equal(updated.rating,3);assert.equal(updated.passcode,"0099#");assert.deepEqual(updated.photo_keys,[]);
+ assert.equal((await db.query("select id from community_reviews where id=$1 and status='approved'",[rid])).rows.length,0);
+ const history=(await db.query("select previous_content from review_revisions where review_id=$1",[rid])).rows;
+ assert.equal(history.length,1);assert.equal(history[0].previous_content.body,before.body);assert.deepEqual(history[0].previous_content.photo_keys,[photo]);
+ await assert.rejects(edit(reviewer,before.updated_at,[]),/changed/);
+ await moderate(rid,actor,"approved",updated.updated_at,[]);
+ assert.equal((await edit(actor,(await current(rid)).updated_at,[],[photo])).rows[0].status,"approved");
+ await db.query("update community_reviews set user_id=null where id=$1",[rid]);
+ await assert.rejects(edit(reviewer,(await current(rid)).updated_at),/Not allowed/);
+ assert.equal((await edit(actor,(await current(rid)).updated_at)).rows[0].status,"approved");
+});
+test("review edits validate dates, text, ratings and photo references",()=>{
+ const edit={id,updatedAt:new Date().toISOString(),name:"Reviewer",rating:4,body:"Clean and well stocked.",visited:"2026-01-01",passcode:"",keepPhotos:[]};
+ assert.equal(editReviewSchema.safeParse(edit).success,true);
+ for(const change of [{rating:6},{body:"short"},{visited:"2999-01-01"},{updatedAt:"bad"},{keepPhotos:["another-review-photo"]}]) assert.equal(editReviewSchema.safeParse({...edit,...change}).success,false);
+});
+
+test("five-photo batches save together, and a sixth photo is rejected",async()=>{
+ const rid="d1111111-1111-4111-8111-111111111111";
+ const photos=Array.from({length:6},(_,i)=>`e${i}111111-1111-4111-8111-111111111111.jpg`);
+ await insert(rid);
+ await db.query("update community_reviews set photo_keys=$1 where id=$2",[photos.slice(0,5),rid]);
+ await assert.rejects(db.query("update community_reviews set photo_keys=$1 where id=$2",[photos,rid]),/check constraint/);
+ const content={name:"Reviewer",rating:4,body:"A review with five bathroom photographs.",visited:"2026-01-01",passcode:""};
+ await asRole("service_role","select edit_review($1,$2,$3,$4,$5,$6)",[rid,reviewer,(await current(rid)).updated_at,JSON.stringify(content),[],photos.slice(0,5)]);
+ assert.equal((await current(rid)).photo_keys.length,5);
+ await assert.rejects(asRole("service_role","select edit_review($1,$2,$3,$4,$5,$6)",[rid,reviewer,(await current(rid)).updated_at,JSON.stringify(content),photos.slice(0,5),photos.slice(5)]),/Invalid photos/);
+ await moderate(rid,actor,"approved",(await current(rid)).updated_at,photos.slice(0,5));
+ assert.equal((await current(rid)).status,"approved");
 });

@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       if(!data) throw new ApiError(400,"Choose a bathroom within the selected property.");
     }
     const files = form.getAll("photos");
-    if (files.length > 3) throw new ApiError(400, "Choose up to three photos.");
+    if (files.length > 5) throw new ApiError(400, "Choose up to five photos.");
     const clean = await Promise.all(
       files.map(async (f) => {
         if (!(f instanceof File) || f.type !== "image/jpeg")

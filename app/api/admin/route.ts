@@ -43,7 +43,7 @@ const action = z.object({
   status: z.enum(["approved", "rejected"]),
   note: z.string().trim().max(500),
   passcode: z.string().trim().max(40).optional(),
-  photos: z.array(z.string().regex(/^[0-9a-f-]{36}\.jpg$/i)).max(3),
+  photos: z.array(z.string().regex(/^[0-9a-f-]{36}\.jpg$/i)).max(5),
   venue: venueSchema,
   bathroom: bathroomSchema,
 });

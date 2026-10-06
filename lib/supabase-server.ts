@@ -126,7 +126,7 @@ export async function ipQuota(
     .join("");
   await quota(kind + ":" + hash, limit, seconds);
 }
-export async function boundedBody(request: Request, max = 7 * 1024 * 1024) {
+export async function boundedBody(request: Request, max = 12 * 1024 * 1024) {
   if (Number(request.headers.get("content-length")) > max)
     throw new ApiError(413, "Your submission is too large.");
   const reader = request.body?.getReader();

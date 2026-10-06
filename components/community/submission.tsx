@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { compress } from "@/lib/compress-photo";
 import { Camera, Toilet, X } from "lucide-react";
 import {
   Dialog,
@@ -14,37 +15,6 @@ import { YelpField } from "./yelp-field";
 import { BathroomFields } from "./bathroom-fields";
 import type { BathroomInput } from "@/lib/community";
 import { blankVenue, VenueFields } from "./venue-fields";
-async function compress(file: File) {
-  if (
-    !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-    file.size > 10 * 1024 * 1024
-  )
-    throw new Error("Choose JPEG, PNG, or WebP photos smaller than 10 MB.");
-  const bitmap = await createImageBitmap(file);
-  try {
-    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    const ctx = canvas.getContext("2d");
-    if (!ctx)
-      throw new Error("Photo processing is unavailable in this browser.");
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error("Could not prepare photo."))),
-        "image/jpeg",
-        0.8,
-      ),
-    );
-    if (blob.size > 2 * 1024 * 1024) throw new Error("Choose a smaller photo.");
-    return new File([blob], "bathroom.jpg", { type: "image/jpeg" });
-  } finally {
-    bitmap.close();
-  }
-}
 export function Submission({
   venues,
   initialVenue,
@@ -94,6 +64,12 @@ export function Submission({
         ),
       );
   }, [enabled]);
+  async function addPhotos(selected:File[]) {
+    if(selected.length+files.length>5){setError("Choose up to five photos in total.");return;}
+    setPhotoBusy(true);setError("");
+    try {const ready=await Promise.all(selected.map(compress));setFiles(old=>[...old,...ready]);}
+    catch(e){setError((e as Error).message);}finally{setPhotoBusy(false);}
+  }
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!rating) {
@@ -165,7 +141,7 @@ export function Submission({
               {identity === "Guest" && (
                 <>
                   No account required. <a href="/account">Sign in first</a> to
-                  track your submissions.
+                  edit and track your submissions.
                 </>
               )}
             </p>
@@ -262,7 +238,7 @@ export function Submission({
             </label>
             <div>
               <span className="field-label">
-                Bathroom photos <small>Optional · up to 3</small>
+                Bathroom photos <small>Optional · up to 5</small>
               </span>
               <label className="upload">
                 <Camera size={22} />
@@ -275,27 +251,12 @@ export function Submission({
                   type="file"
                   multiple
                   accept="image/jpeg,image/png,image/webp"
-                  disabled={busy || photoBusy}
-                  onChange={async (e) => {
-                    const selected = Array.from(e.target.files || []);
-                    e.target.value = "";
-                    if (selected.length + files.length > 3) {
-                      setError("Choose up to three photos.");
-                      return;
-                    }
-                    setPhotoBusy(true);
-                    setError("");
-                    try {
-                      const ready = await Promise.all(selected.map(compress));
-                      setFiles((old) => [...old, ...ready]);
-                    } catch (e) {
-                      setError((e as Error).message);
-                    } finally {
-                      setPhotoBusy(false);
-                    }
-                  }}
+                  disabled={busy || photoBusy || files.length>=5}
+                  onChange={e=>{const selected=Array.from(e.target.files||[]);e.target.value="";void addPhotos(selected);}}
                 />
               </label>
+              <label className="upload"><Camera size={22}/><span>Take a photo<small>Use your camera, then add another shot</small></span><input aria-label="Take a bathroom photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={busy||photoBusy||files.length>=5} onChange={e=>{const selected=Array.from(e.target.files||[]);e.target.value="";void addPhotos(selected);}}/></label>
+              <p role="status">{files.length} of 5 photos selected. Choose several photos together, or add camera shots before submitting.</p>
               <p className="photo-rule">
                 Empty spaces only. No people, reflections of people, or personal
                 information. Use photos you took.

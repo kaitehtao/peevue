@@ -106,3 +106,14 @@ Validation: twelve automated tests pass, including location/type separation, sam
 ## Yelp profile links (2026-10-05)
 
 Contributors may propose an optional Yelp business profile with a review of any property. Moderators verify it against the property name/address and may correct or clear it. Approval saves a single property-level link shared across its bathrooms. Pending suggestions are never returned by the public API. Links accept only HTTPS Yelp business profiles, are canonicalized to www.yelp.com/biz/... without tracking queries, and open separately. This feature links to Yelp; it does not import Yelp ratings, reviews, or photos. Fourteen tests, typecheck, and production build validate this release.
+
+## Author and administrator editing (2026-10-06)
+
+Signed-in contributors can open Edit review from My reviews to change display name, rating, text, visit date, passcode, and photos. Only the verified owning account or an administrator may edit. Guest posts have no account owner and remain administrator-editable only; display names do not establish ownership. The review's property and bathroom assignment remain unchanged by this content editor; admins continue to correct property and bathroom details through moderation.
+
+Author edits move the review back to pending, immediately removing its public review/photo access until approval. Administrator edits preserve the current status, so an approved post stays published and a pending or rejected post is not accidentally published. Superseded private photo URLs can remain valid until their five-minute expiry. Old content is recorded in the private review_revisions table; an event records the actor. Removed photos remain in private storage for retention review. Browser database roles cannot call edit_review or read revisions. The atomic edit function verifies ownership, retained-photo membership, and the expected update time. Uploaded replacements use the same JPEG metadata removal as submissions. Eighteen automated tests, typecheck, and production build passed.
+
+
+## Camera and batch photo selection (2026-10-06)
+
+New submissions and review edits support up to five JPEG photos after client resizing, including kept photos plus replacements. Choose photos allows multiple selection; Take a photo requests the rear camera on supported mobile devices and adds each shot to the preview. Device camera behavior is browser-dependent; no background camera access is requested. Each processed photo is limited to 2 MB and the multipart request to 12 MB. The database, edit transaction, upload API, and admin moderation all enforce the five-photo maximum. Tests verify a five-photo save and approval and rejection of a sixth photo.

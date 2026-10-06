@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import type { User } from "@supabase/supabase-js";
+import { ReviewEditor } from "@/components/community/review-editor";
 import { Header, Footer } from "@/components/community/header";
 import { browserClient, googleSignInAvailable, memberFetch } from "@/lib/supabase-browser";
 import { accountError, displayName } from "@/lib/account";
 type OwnReview = {
   id: string;
+  updated_at: string;
+  photo_keys: string[];
   bathrooms?: {location:string;gender:string} | null;
   proposed_bathroom?: {location:string;gender:string} | null;
   display_name: string;
@@ -247,7 +250,7 @@ export default function Account() {
                 </div>
               ) : (
                 reviews.map((r) => (
-                  <article className="moderation-card" key={r.id}>
+                  <article className="moderation-card" key={r.id + r.updated_at}>
                     <div className="section-heading">
                       <h3>
                         {r.venues?.name ||
@@ -261,6 +264,7 @@ export default function Account() {
                     </p>
                     <p><strong>{(r.bathrooms || r.proposed_bathroom)?.location || "Location not specified"} · {(r.bathrooms || r.proposed_bathroom)?.gender || "Not specified"}</strong></p>
                     <p>{r.body}</p>
+                    <ReviewEditor review={r} admin={isAdmin} onSaved={()=>{setMessage("Review changes saved.");void load();}}/>
                     {r.passcode && <p>Bathroom passcode: <code className="bathroom-passcode">{r.passcode}</code></p>}
                     {r.moderation_note && (
                       <p className="location-message">

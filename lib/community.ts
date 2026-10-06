@@ -79,14 +79,7 @@ export const bathroomTypes = ["Men’s", "Women’s", "Unisex", "Family", "Not s
 export const bathroomSchema = z.object({ location: text(2, 120), gender: z.enum(bathroomTypes) });
 export type BathroomInput = z.infer<typeof bathroomSchema>;
 export type Bathroom = BathroomInput & { id: string; venueId: string; score: number; count: number; photos: string[] };
-export const submissionSchema = z
-  .object({
-    id: z.string().uuid(),
-    venueId: z.string().uuid().nullable(),
-    venue: venueSchema.nullable(),
-    yelpUrl: yelpUrlSchema,
-    bathroomId: z.string().uuid().nullable().default(null),
-    bathroom: bathroomSchema.nullable().default(null),
+export const reviewContentSchema = z.object({
     name: text(2, 50),
     rating: z.number().int().min(1).max(5),
     body: text(10, 1500),
@@ -103,6 +96,17 @@ export const submissionSchema = z
           d >= "2000-01-01"
         );
       }, "Choose a valid visit date, today or earlier."),
+});
+export const editReviewSchema = reviewContentSchema.extend({id:z.string().uuid(),updatedAt:z.string().datetime({offset:true}),keepPhotos:z.array(z.string().regex(/^[0-9a-f-]{36}\.jpg$/i)).max(5)});
+export const submissionSchema = z
+  .object({
+    id: z.string().uuid(),
+    venueId: z.string().uuid().nullable(),
+    venue: venueSchema.nullable(),
+    yelpUrl: yelpUrlSchema,
+    bathroomId: z.string().uuid().nullable().default(null),
+    bathroom: bathroomSchema.nullable().default(null),
+    ...reviewContentSchema.shape,
     consent: z.literal(true),
     website: z.string().max(0),
   })
