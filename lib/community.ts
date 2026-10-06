@@ -36,10 +36,15 @@ export function todayInVegas(date = new Date()) {
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
+export const yelpUrlSchema = z.string().trim().max(500).default("").refine(value => {
+  if (!value) return true;
+  try { const u = new URL(value); return u.protocol === "https:" && ["yelp.com", "www.yelp.com", "m.yelp.com"].includes(u.hostname) && !u.username && !u.password && !u.port && /^\/biz\/[a-zA-Z0-9_%~-]+\/?$/.test(u.pathname); } catch { return false; }
+}, "Use a full Yelp business profile link, such as https://www.yelp.com/biz/business-name.").transform(value => value ? "https://www.yelp.com" + new URL(value).pathname.replace(/\/$/, "") : "");
 export const venueSchema = z
   .object({
     name: text(2, 120),
     address: text(8, 250),
+    yelpUrl: yelpUrlSchema,
     area: z.enum(neighborhoods),
     type: z.enum(placeTypes),
     access: z.enum(["Public access", "Customers only", "Ask staff"]),
@@ -65,6 +70,7 @@ export const submissionSchema = z
     id: z.string().uuid(),
     venueId: z.string().uuid().nullable(),
     venue: venueSchema.nullable(),
+    yelpUrl: yelpUrlSchema,
     bathroomId: z.string().uuid().nullable().default(null),
     bathroom: bathroomSchema.nullable().default(null),
     name: text(2, 50),

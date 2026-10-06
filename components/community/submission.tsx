@@ -10,6 +10,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ratingLabels, todayInVegas, type Venue } from "@/lib/community";
 import { browserClient, sessionHeaders } from "@/lib/supabase-browser";
+import { YelpField } from "./yelp-field";
 import { BathroomFields } from "./bathroom-fields";
 import type { BathroomInput } from "@/lib/community";
 import { blankVenue, VenueFields } from "./venue-fields";
@@ -59,6 +60,7 @@ export function Submission({
   onClose: () => void;
   onSuccess: (id: string) => void;
 }) {
+  const [yelpUrl,setYelpUrl] = useState("");
   const [bathroomId, setBathroomId] = useState(initialBathroom || "new");
   const [bathroom, setBathroom] = useState<BathroomInput>({location:"",gender:"Not specified"});
   const [venueId, setVenueId] = useState(initialVenue || "new"),
@@ -108,6 +110,7 @@ export function Submission({
         id,
         venueId: venueId === "new" ? null : venueId,
         venue: venueId === "new" ? venue : null,
+        yelpUrl,
         bathroomId: bathroomId === "new" ? null : bathroomId,
         bathroom: bathroomId === "new" ? bathroom : null,
         name: fields.get("name"),
@@ -170,7 +173,7 @@ export function Submission({
               Property or facility
               <select
                 value={venueId}
-                onChange={(e) => {setVenueId(e.target.value);setBathroomId("new");}}
+                onChange={(e) => {setVenueId(e.target.value);setBathroomId("new");setYelpUrl("");}}
               >
                 <option value="new">Add a new property</option>
                 {venues.map((v) => (
@@ -185,6 +188,7 @@ export function Submission({
             ) : (
               <p>{venues.find((v) => v.id === venueId)?.address}</p>
             )}
+            <YelpField value={yelpUrl} onChange={setYelpUrl}/>
             <label>Choose a bathroom<select value={bathroomId} onChange={e=>setBathroomId(e.target.value)}><option value="new">Add another bathroom at this property</option>{(venues.find(v=>v.id===venueId)?.bathrooms || []).map(b=><option key={b.id} value={b.id}>{b.location} · {b.gender}</option>)}</select></label>
             {bathroomId === "new" && <BathroomFields value={bathroom} onChange={setBathroom}/>}
             <fieldset>

@@ -12,6 +12,7 @@ import {
 export const blankVenue: VenueInput = {
   name: "",
   address: "",
+  yelpUrl: "",
   area: "Las Vegas area",
   type: "Restaurant",
   access: "Ask staff",

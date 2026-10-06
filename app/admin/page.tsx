@@ -3,12 +3,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Header, Footer } from "@/components/community/header";
 import { VenueFields } from "@/components/community/venue-fields";
 import { memberFetch } from "@/lib/supabase-browser";
+import { YelpField } from "@/components/community/yelp-field";
 import { BathroomFields } from "@/components/community/bathroom-fields";
 import type { BathroomInput, VenueInput } from "@/lib/community";
 type Entry = {
   id: string;
   bathrooms: BathroomInput | null;
   proposed_bathroom: BathroomInput | null;
+  proposed_yelp_url: string | null;
   updated_at: string;
   display_name: string;
   rating: number;
@@ -22,7 +24,7 @@ type Entry = {
   photos: string[];
   proposed_venue: VenueInput;
   venues:
-    | (VenueInput & { location_source: VenueInput["locationSource"] })
+    | (VenueInput & { location_source: VenueInput["locationSource"]; yelp_url:string })
     | null;
 };
 function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
@@ -30,7 +32,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
     ? { ...entry.venues, locationSource: entry.venues.location_source }
     : entry.proposed_venue;
   const [bathroom,setBathroom] = useState<BathroomInput>(entry.bathrooms || entry.proposed_bathroom || {location:"Location not specified",gender:"Not specified"});
-  const [venue, setVenue] = useState<VenueInput>(initial),
+  const [venue, setVenue] = useState<VenueInput>({...initial,yelpUrl:(entry.status === "pending" ? entry.proposed_yelp_url : null) ?? entry.venues?.yelp_url ?? initial.yelpUrl ?? ""}),
     [photos, setPhotos] = useState(entry.photo_keys),
     [note, setNote] = useState(entry.moderation_note),
     [passcode, setPasscode] = useState(entry.passcode || ""),
@@ -80,6 +82,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
       </p>
       <p className="review-text">{entry.body}</p>
       <form className="review-form" onSubmit={decide}>
+        <YelpField value={venue.yelpUrl} onChange={yelpUrl=>setVenue({...venue,yelpUrl})}/>
         <BathroomFields value={bathroom} onChange={setBathroom}/>
         <label>Bathroom passcode <small>(optional)</small><input type="text" maxLength={40} autoComplete="off" value={passcode} onChange={e=>setPasscode(e.target.value)}/><small className="photo-rule">Published with this review. Clear the field to withhold the code.</small></label>
         <details>

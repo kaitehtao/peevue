@@ -51,6 +51,7 @@ export async function GET() {
         const rs = reviews.filter((r) => r.venue_id === v.id);
         return {
           ...v,
+          yelpUrl: v.yelp_url,
           bathrooms: bathrooms!.filter(b=>b.venue_id===v.id).map(b=>{
             const br = rs.filter(r=>r.bathroom_id===b.id);
             return {id:b.id,venueId:v.id,location:b.location,gender:b.gender,count:br.length,score:br.reduce((n,r)=>n+r.rating,0)/br.length,photos:br.flatMap(r=>r.photo_keys.map((k:string)=>"/api/photos/"+k))};
@@ -158,6 +159,7 @@ export async function POST(request: Request) {
         venue_id: input.venueId,
         bathroom_id: input.bathroomId,
         proposed_bathroom: input.bathroom,
+        proposed_yelp_url: input.yelpUrl || null,
         proposed_venue: input.venueId ? null : input.venue,
         display_name: input.name,
         rating: input.rating,

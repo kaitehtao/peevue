@@ -369,6 +369,7 @@ export default function Home() {
                 />
               )}
               <p>{detail.address}</p>
+              {detail.yelpUrl && <a className="text-button" href={detail.yelpUrl} target="_blank" rel="noopener noreferrer">View this property on Yelp <ArrowUpRight size={16}/></a>}
               {detail.latitude !== null && (
                 <a
                   className="text-button"

@@ -101,3 +101,8 @@ The `property_bathrooms` migration is applied to production. `venues` represent 
 The public property page provides separate bathroom ratings and review filters, including each bathroom's photos and review passcodes. Account history and moderation include bathroom identity. Property ratings remain aggregates across approved bathroom reviews. Only bathrooms with approved reviews appear publicly. Legacy records are preserved under “Location not specified / Not specified”; no location or gender is guessed. Editing an existing bathroom in moderation updates its label for all its reviews.
 
 Validation: twelve automated tests pass, including location/type separation, same-bathroom reuse, cross-property rejection, and browser-role denial. Typecheck and production build passed. Public submission form verified on peevue.com after deployment. No fictional reviews were published for testing.
+
+
+## Yelp profile links (2026-10-05)
+
+Contributors may propose an optional Yelp business profile with a review of any property. Moderators verify it against the property name/address and may correct or clear it. Approval saves a single property-level link shared across its bathrooms. Pending suggestions are never returned by the public API. Links accept only HTTPS Yelp business profiles, are canonicalized to www.yelp.com/biz/... without tracking queries, and open separately. This feature links to Yelp; it does not import Yelp ratings, reviews, or photos. Fourteen tests, typecheck, and production build validate this release.

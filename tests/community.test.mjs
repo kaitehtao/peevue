@@ -2,7 +2,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
-import { submissionSchema, areaFor, inVegas, todayInVegas } from "../lib/community.ts";
+import { submissionSchema, yelpUrlSchema, areaFor, inVegas, todayInVegas } from "../lib/community.ts";
 import { sanitizeJpeg } from "../lib/photo.ts";
 import { verifiedAdministratorEmail } from "../lib/admin-identity.ts";
 const db = new PGlite();
@@ -48,6 +48,7 @@ await db.exec(
 await db.exec(await readFile(new URL('../supabase/migrations/20260929040527_administrator_email_reservations.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20260929060047_review_bathroom_passcodes.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20261004000100_property_bathrooms.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261005000100_property_yelp_profiles.sql', import.meta.url), 'utf8'));
 await db.query("insert into auth.users(id) values($1),($2)", [actor, reviewer]);
 await db.query("insert into administrators(user_id) values($1)", [actor]);
 after(() => db.close());
@@ -268,4 +269,21 @@ test("bathrooms separate locations and types within one property and enforce own
  assert.equal(submissionSchema.safeParse({...input,bathroom:null}).success,false);
  assert.equal(submissionSchema.safeParse({...input,bathroom:{location:'',gender:'Unisex'}}).success,false);
  assert.equal(submissionSchema.safeParse({...input,bathroomId:ids[0]}).success,false);
+});
+
+test("Yelp links are canonical business profiles, never arbitrary URLs", () => {
+ assert.equal(yelpUrlSchema.parse(" https://m.yelp.com/biz/test-las-vegas/?utm_source=share "),"https://www.yelp.com/biz/test-las-vegas");
+ for(const url of ["javascript:alert(1)","https://yelp.com.evil.test/biz/test","https://evil.test/biz/test","https://www.yelp.com/search","https://user:password@yelp.com/biz/test","http://yelp.com/biz/test","https://yelp.com:8443/biz/test"]) assert.equal(yelpUrlSchema.safeParse(url).success,false,url);
+ assert.equal(yelpUrlSchema.parse(undefined),"");
+});
+test("Yelp profiles publish only through approval and can be corrected or cleared", async () => {
+ const rid="b1111111-1111-4111-8111-111111111111";
+ await insert(rid);
+ await db.query("update community_reviews set proposed_yelp_url=$1 where id=$2",["https://www.yelp.com/biz/test",rid]);
+ assert.equal((await current(rid)).status,"pending");
+ for(const url of ["https://www.yelp.com/biz/test",""]) {
+  await asRole("service_role","select moderate_review($1,$2,$3,'approved','Checked',$4,$5)",[rid,actor,(await current(rid)).updated_at,[],JSON.stringify({...venue,yelpUrl:url})]);
+  assert.equal((await db.query("select yelp_url from venues where id=$1",[(await current(rid)).venue_id])).rows[0].yelp_url,url);
+ }
+ await assert.rejects(db.query("update venues set yelp_url='https://evil.test'"),/check constraint/);
 });
