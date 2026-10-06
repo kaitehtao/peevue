@@ -6,6 +6,8 @@ export const placeTypes = [
   "Condo",
   "Apartment",
   "Home",
+  "School",
+  "Public building",
   "Public restroom",
   "Other",
 ] as const;
