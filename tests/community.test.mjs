@@ -347,3 +347,12 @@ test("five-photo batches save together, and a sixth photo is rejected",async()=>
  await moderate(rid,actor,"approved",(await current(rid)).updated_at,photos.slice(0,5));
  assert.equal((await current(rid)).status,"approved");
 });
+
+test("Chinatown corridor is selectable and suggested without relabeling the Strip",()=>{
+ const area="Chinatown / Spring Mountain Corridor";
+ assert.equal(submissionSchema.safeParse({...input,venue:{...venue,area}}).success,true);
+ assert.equal(areaFor(36.127,-115.207),area);
+ assert.equal(areaFor(36.127,-115.24),area);
+ assert.equal(areaFor(36.127,-115.17),"The Strip");
+ assert.notEqual(areaFor(36.15,-115.207),area);
+});

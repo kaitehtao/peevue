@@ -13,6 +13,7 @@ export const placeTypes = [
 ] as const;
 export const neighborhoods = [
   "The Strip",
+  "Chinatown / Spring Mountain Corridor",
   "Arts District",
   "Downtown",
   "Summerlin",
@@ -153,6 +154,10 @@ export function areaFor(
   latitude: number,
   longitude: number,
 ): (typeof neighborhoods)[number] {
+  // Approximate Spring Mountain corridor west of I-15 toward Rainbow.
+  // This is a suggested neighborhood, not an official boundary; users can correct it.
+  if (latitude >= 36.121 && latitude <= 36.134 && longitude >= -115.245 && longitude <= -115.185)
+    return "Chinatown / Spring Mountain Corridor";
   if (longitude < -115.25) return "Summerlin";
   if (latitude < 36.08 && longitude > -115.13) return "Henderson";
   if (latitude > 36.23) return "North Las Vegas";
