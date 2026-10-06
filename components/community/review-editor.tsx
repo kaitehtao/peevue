@@ -1,13 +1,25 @@
 "use client";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { todayInVegas, ratingLabels } from "@/lib/community";
+import { todayInVegas, ratingLabels, type VenueInput, type BathroomInput } from "@/lib/community";
 import { compress } from "@/lib/compress-photo";
 import { memberFetch } from "@/lib/supabase-browser";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-type EditableReview = {id:string;updated_at:string;display_name:string;rating:number;body:string;visited:string;passcode:string;photo_keys:string[];photos:string[];status:string};
+import { VenueFields, blankVenue } from "./venue-fields";
+import { BathroomFields } from "./bathroom-fields";
+import { YelpField } from "./yelp-field";
+
+export type EditableReview = {id:string;updated_at:string;display_name:string;rating:number;body:string;visited:string;passcode:string;photo_keys:string[];photos:string[];status:string;proposed_venue?:VenueInput|null;proposed_yelp_url?:string|null;proposed_bathroom?:BathroomInput|null;bathrooms?:BathroomInput|null;venues?:(VenueInput & {location_source:VenueInput["locationSource"];yelp_url:string})|null};
+export function entryDetails(review:EditableReview) {
+ const proposed=review.status!=="approved";
+ const saved=review.venues ? {...review.venues,locationSource:review.venues.location_source,yelpUrl:review.venues.yelp_url} : blankVenue;
+ const venue=proposed && review.proposed_venue ? review.proposed_venue : saved;
+ return {venue:{...venue,yelpUrl:(proposed?review.proposed_yelp_url:null) ?? venue.yelpUrl ?? ""},bathroom:(proposed?review.proposed_bathroom:null) ?? review.bathrooms ?? review.proposed_bathroom ?? {location:"Location not specified",gender:"Not specified" as const}};
+}
 export function ReviewEditor({review,admin=false,onSaved}:{review:EditableReview;admin?:boolean;onSaved:()=>void}) {
  const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[preparing,setPreparing]=useState(false),[error,setError]=useState("");
+ const initial=entryDetails(review);
+ const [venue,setVenue]=useState<VenueInput>(initial.venue),[bathroom,setBathroom]=useState<BathroomInput>(initial.bathroom);
  const [passcode,setPasscode]=useState(review.passcode || "");
  const [keep,setKeep]=useState(review.photo_keys),[files,setFiles]=useState<File[]>([]);
  const previews=useMemo(()=>files.map(f=>URL.createObjectURL(f)),[files]);
@@ -19,14 +31,17 @@ export function ReviewEditor({review,admin=false,onSaved}:{review:EditableReview
  async function save(e:FormEvent<HTMLFormElement>) {
   e.preventDefault();setBusy(true);setError("");
   const fields=new FormData(e.currentTarget),body=new FormData();
-  body.set("edit",JSON.stringify({id:review.id,updatedAt:review.updated_at,name:fields.get("name"),rating:Number(fields.get("rating")),body:fields.get("body"),visited:fields.get("visited"),passcode,keepPhotos:keep}));
+  body.set("edit",JSON.stringify({id:review.id,updatedAt:review.updated_at,name:fields.get("name"),rating:Number(fields.get("rating")),body:fields.get("body"),visited:fields.get("visited"),passcode,venue,bathroom,keepPhotos:keep}));
   files.forEach(f=>body.append("photos",f));
   try { const r=await memberFetch("/api/reviews/edit",{method:"POST",body});const d=await r.json() as {error?:string};if(!r.ok) throw new Error(d.error);setOpen(false);onSaved(); }
   catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
- return <><button className="secondary" type="button" onClick={()=>{setPasscode(review.passcode || "");setKeep(review.photo_keys);setFiles([]);setError("");setOpen(true);}}>Edit review</button>
- <Dialog open={open} onOpenChange={v=>{if(!busy&&!preparing)setOpen(v);}}><DialogContent className="review-dialog" onInteractOutside={e=>e.preventDefault()}><DialogTitle>Edit review</DialogTitle><DialogDescription>{admin ? "Save corrections to the text, rating, visit date, passcode, and photos. The current publication status stays unchanged." : "Your changes return to admin review. An approved post is hidden until the updated version is approved."}</DialogDescription>
+ return <><button className="secondary" type="button" onClick={()=>{setVenue(entryDetails(review).venue);setBathroom(entryDetails(review).bathroom);setPasscode(review.passcode || "");setKeep(review.photo_keys);setFiles([]);setError("");setOpen(true);}}>Edit entire entry</button>
+ <Dialog open={open} onOpenChange={v=>{if(!busy&&!preparing)setOpen(v);}}><DialogContent className="review-dialog" onInteractOutside={e=>e.preventDefault()}><DialogTitle>Edit entire entry</DialogTitle><DialogDescription>{admin ? "Edit the property, bathroom, review, and photos together. Property details are shared by all bathrooms here; bathroom details are shared by reviews of that bathroom. Published entries update immediately; unpublished entries remain in their current status." : "Your changes return to admin review. An approved post is hidden until the updated version is approved."}</DialogDescription>
  <form className="review-form" onSubmit={save}>
+ <VenueFields value={venue} onChange={setVenue}/>
+ <YelpField value={venue.yelpUrl} onChange={yelpUrl=>setVenue({...venue,yelpUrl})}/>
+ <BathroomFields value={bathroom} onChange={setBathroom}/>
  <label>Public display name<input name="name" required minLength={2} maxLength={50} defaultValue={review.display_name}/></label>
  <label>Cleanliness rating<select name="rating" defaultValue={review.rating}>{[1,2,3,4,5].map(n=><option key={n} value={n}>{n}/5 · {ratingLabels[n]}</option>)}</select></label>
  <label>Date visited<input type="date" name="visited" required min="2000-01-01" max={todayInVegas()} defaultValue={review.visited}/></label>

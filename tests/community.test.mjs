@@ -51,6 +51,7 @@ await db.exec(await readFile(new URL('../supabase/migrations/20261004000100_prop
 await db.exec(await readFile(new URL('../supabase/migrations/20261005000100_property_yelp_profiles.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20261006000100_review_editing.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20261006000200_five_review_photos.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261006000300_entire_entry_editing.sql', import.meta.url), 'utf8'));
 await db.query("insert into auth.users(id) values($1),($2)", [actor, reviewer]);
 await db.query("insert into administrators(user_id) values($1)", [actor]);
 after(() => db.close());
@@ -355,4 +356,25 @@ test("Chinatown corridor is selectable and suggested without relabeling the Stri
  assert.equal(areaFor(36.127,-115.24),area);
  assert.equal(areaFor(36.127,-115.17),"The Strip");
  assert.notEqual(areaFor(36.15,-115.207),area);
+});
+
+test("entire entry edits publish atomically for admins and hold author property changes for approval",async()=>{
+ const rid="f1111111-1111-4111-8111-111111111111";
+ await insert(rid);
+ await moderate(rid,actor,"approved",(await current(rid)).updated_at);
+ const content={name:"Reviewer",rating:4,body:"Clean and well stocked bathroom.",visited:"2026-01-01",passcode:"",venue:{...venue,name:"Corrected property",address:"456 Updated Street, Las Vegas, NV",yelpUrl:"https://www.yelp.com/biz/correct-property"},bathroom:{location:"West mezzanine",gender:"Unisex"}};
+ const edit=async(who,value=content)=>asRole("service_role","select edit_review($1,$2,$3,$4,$5,$6)",[rid,who,(await current(rid)).updated_at,JSON.stringify(value),[],[]]);
+ await edit(actor);
+ let review=await current(rid);
+ const property=async()=>(await db.query("select * from venues where id=$1",[review.venue_id])).rows[0];
+ assert.equal(review.status,"approved");assert.equal((await property()).name,"Corrected property");assert.equal((await property()).yelp_url,content.venue.yelpUrl);
+ assert.equal((await db.query("select location from bathrooms where id=$1",[review.bathroom_id])).rows[0].location,"West mezzanine");
+ await assert.rejects(edit(actor,{...content,venue:{...content.venue,name:"Must roll back",yelpUrl:"https://evil.test"}}),/check constraint/);
+ assert.equal((await property()).name,"Corrected property");
+ const proposal={...content,venue:{...content.venue,name:"Author correction"},bathroom:{location:"Lobby west",gender:"Women’s"}};
+ await edit(reviewer,proposal);
+ review=await current(rid);
+ assert.equal(review.status,"pending");assert.equal(review.proposed_venue.name,"Author correction");assert.equal((await property()).name,"Corrected property");
+ await asRole("service_role","select moderate_review($1,$2,$3,$4,$5,$6,$7,$8,$9)",[rid,actor,review.updated_at,"approved","",[],JSON.stringify(review.proposed_venue),"",JSON.stringify(review.proposed_bathroom)]);
+ assert.equal((await property()).name,"Author correction");
 });

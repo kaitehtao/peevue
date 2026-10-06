@@ -1,27 +1,11 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import type { User } from "@supabase/supabase-js";
-import { ReviewEditor } from "@/components/community/review-editor";
+import { ReviewEditor, type EditableReview } from "@/components/community/review-editor";
 import { Header, Footer } from "@/components/community/header";
 import { browserClient, googleSignInAvailable, memberFetch } from "@/lib/supabase-browser";
 import { accountError, displayName } from "@/lib/account";
-type OwnReview = {
-  id: string;
-  updated_at: string;
-  photo_keys: string[];
-  bathrooms?: {location:string;gender:string} | null;
-  proposed_bathroom?: {location:string;gender:string} | null;
-  display_name: string;
-  rating: number;
-  body: string;
-  passcode: string;
-  visited: string;
-  status: string;
-  moderation_note: string;
-  photos: string[];
-  proposed_venue?: { name: string };
-  venues?: { name: string };
-};
+type OwnReview = EditableReview & {moderation_note:string};
 export default function Account() {
   const [user, setUser] = useState<User | null>(null),
     [ready, setReady] = useState(false),

@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const { data, error } = await db
       .from("community_reviews")
       .select(
-        "id,venue_id,bathroom_id,proposed_bathroom,bathrooms(location,gender),display_name,rating,body,passcode,visited,created_at,updated_at,photo_keys,status,moderation_note,proposed_venue,venues(name)",
+        "id,venue_id,bathroom_id,proposed_bathroom,proposed_yelp_url,bathrooms(location,gender),display_name,rating,body,passcode,visited,created_at,updated_at,photo_keys,status,moderation_note,proposed_venue,venues(*)",
       )
       .eq("user_id", who!.id)
       .order("created_at", { ascending: false })

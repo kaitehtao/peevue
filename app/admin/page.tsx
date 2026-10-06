@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
-import { ReviewEditor } from "@/components/community/review-editor";
+import { ReviewEditor, entryDetails } from "@/components/community/review-editor";
 import { Header, Footer } from "@/components/community/header";
 import { VenueFields } from "@/components/community/venue-fields";
 import { memberFetch } from "@/lib/supabase-browser";
@@ -29,11 +29,10 @@ type Entry = {
     | null;
 };
 function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
-  const initial = entry.venues
-    ? { ...entry.venues, locationSource: entry.venues.location_source }
-    : entry.proposed_venue;
-  const [bathroom,setBathroom] = useState<BathroomInput>(entry.bathrooms || entry.proposed_bathroom || {location:"Location not specified",gender:"Not specified"});
-  const [venue, setVenue] = useState<VenueInput>({...initial,yelpUrl:(entry.status === "pending" ? entry.proposed_yelp_url : null) ?? entry.venues?.yelp_url ?? initial.yelpUrl ?? ""}),
+  const details = entryDetails(entry);
+  const initial = details.venue;
+  const [bathroom,setBathroom] = useState<BathroomInput>(details.bathroom);
+  const [venue, setVenue] = useState<VenueInput>(initial),
     [photos, setPhotos] = useState(entry.photo_keys),
     [note, setNote] = useState(entry.moderation_note),
     [passcode, setPasscode] = useState(entry.passcode || ""),
@@ -83,7 +82,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
       </p>
       <p className="review-text">{entry.body}</p>
       <ReviewEditor review={entry} admin onSaved={onDone}/>
-      <form className="review-form" onSubmit={decide}>
+      <details><summary>Approval and publication controls</summary><form className="review-form" onSubmit={decide}>
         <YelpField value={venue.yelpUrl} onChange={yelpUrl=>setVenue({...venue,yelpUrl})}/>
         <BathroomFields value={bathroom} onChange={setBathroom}/>
         <label>Bathroom passcode <small>(optional)</small><input type="text" maxLength={40} autoComplete="off" value={passcode} onChange={e=>setPasscode(e.target.value)}/><small className="photo-rule">Published with this review. Clear the field to withhold the code.</small></label>
@@ -158,7 +157,7 @@ function QueueCard({ entry, onDone }: { entry: Entry; onDone: () => void }) {
               : "Reject submission"}
           </button>
         </div>
-      </form>
+      </form></details>
     </article>
   );
 }

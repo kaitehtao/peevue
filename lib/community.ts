@@ -98,7 +98,7 @@ export const reviewContentSchema = z.object({
         );
       }, "Choose a valid visit date, today or earlier."),
 });
-export const editReviewSchema = reviewContentSchema.extend({id:z.string().uuid(),updatedAt:z.string().datetime({offset:true}),keepPhotos:z.array(z.string().regex(/^[0-9a-f-]{36}\.jpg$/i)).max(5)});
+export const editReviewSchema = reviewContentSchema.extend({id:z.string().uuid(),updatedAt:z.string().datetime({offset:true}),venue:venueSchema.optional(),bathroom:bathroomSchema.optional(),keepPhotos:z.array(z.string().regex(/^[0-9a-f-]{36}\.jpg$/i)).max(5)});
 export const submissionSchema = z
   .object({
     id: z.string().uuid(),

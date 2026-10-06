@@ -37,10 +37,11 @@ export async function POST(request: Request) {
     }
     const {data:status,error:editError} = await db.rpc("edit_review",{
       p_id:input.id,p_actor:who!.id,p_expected:input.updatedAt,
-      p_content:{name:input.name,rating:input.rating,body:input.body,visited:input.visited,passcode:input.passcode},
+      p_content:{name:input.name,rating:input.rating,body:input.body,visited:input.visited,passcode:input.passcode,...(input.venue?{venue:input.venue,bathroom:input.bathroom}: {})},
       p_keep:input.keepPhotos,p_added:uploaded,
     });
     if(editError) {
+      if(editError.code === "23505") throw new ApiError(409,"A bathroom with this location and type already exists at this property. Use a distinct location label.");
       if(editError.message.includes("changed")) throw new ApiError(409,"This review has changed. Refresh the page before editing again.");
       if(editError.message.includes("Not allowed")) throw new ApiError(403,"You can only edit your own reviews.");
       throw editError;
