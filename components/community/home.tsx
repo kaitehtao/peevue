@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Header, Footer } from "@/components/community/header";
+import { ReviewMap } from "@/components/community/review-map";
 import { Submission } from "@/components/community/submission";
 import {
   neighborhoods,
@@ -224,6 +225,7 @@ export default function Home() {
             ) : (
               !loadError && (
                 <>
+                  <ReviewMap venues={filtered} onSelect={v=>{setDetail(v);setSelectedBathroom("all");}}/>
                   <div className="cards">
                     {filtered.map((v) => (
                       <button
