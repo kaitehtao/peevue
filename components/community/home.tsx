@@ -64,6 +64,12 @@ export default function Home() {
   useEffect(() => {
     void load();
   }, []);
+  const latestReview = new Map<string, number>();
+  for (const review of reviews) {
+    if (!review.venueId) continue;
+    const timestamp = Date.parse(review.createdAt) || 0;
+    latestReview.set(review.venueId, Math.max(latestReview.get(review.venueId) || 0, timestamp));
+  }
   const filtered = venues
     .filter(
       (v) =>
@@ -76,7 +82,9 @@ export default function Home() {
         (!publicOnly || v.access === "Public access"),
     )
     .sort((a, b) =>
-      sort === "name" ? a.name.localeCompare(b.name) : b.score - a.score,
+      sort === "recent"
+        ? (latestReview.get(b.id) || 0) - (latestReview.get(a.id) || 0) || a.name.localeCompare(b.name)
+        : sort === "name" ? a.name.localeCompare(b.name) : b.score - a.score,
     );
   function start(venueId?: string, bathroomId?: string) {
     setDetail(null);
@@ -171,6 +179,7 @@ export default function Home() {
                 onChange={(e) => setSort(e.target.value)}
               >
                 <option value="cleanest">Cleanest first</option>
+                <option value="recent">Most recent reviews</option>
                 <option value="name">Name A–Z</option>
               </select>
             </div>
