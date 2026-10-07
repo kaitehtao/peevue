@@ -14,7 +14,8 @@ export function ReviewMap({venues,onSelect}:{venues:Venue[];onSelect:(venue:Venu
  const located=venues.filter(v=>v.latitude!==null && v.longitude!==null && inVegas(v.latitude,v.longitude));
  useEffect(()=>{
   let disposed=false;let observer:ResizeObserver|undefined;
-  void import("leaflet").then(L=>{
+  void import("leaflet").then(module=>{
+   const L=module.default ?? module;
    if(disposed || !container.current)return;
    library.current=L;
    const instance=L.map(container.current,{scrollWheelZoom:false}).setView([36.14,-115.2],11);
@@ -23,7 +24,7 @@ export function ReviewMap({venues,onSelect}:{venues:Venue[];onSelect:(venue:Venu
    markers.current=L.layerGroup().addTo(instance);
    observer=new ResizeObserver(()=>instance.invalidateSize());observer.observe(container.current);
    setReady(true);
-  }).catch(()=>{if(!disposed)setError("The map could not load. Please refresh, or use the listings below.");});
+  }).catch(error=>{console.error("Map initialization failed",error);if(!disposed)setError("The map could not load. Please refresh, or use the listings below.");});
   return ()=>{disposed=true;observer?.disconnect();map.current?.remove();map.current=null;markers.current=null;boundsKey.current="";};
  },[]);
  useEffect(()=>{
@@ -44,7 +45,7 @@ export function ReviewMap({venues,onSelect}:{venues:Venue[];onSelect:(venue:Venu
  },[venues,ready,onSelect]);
  return <section className="review-map-section" aria-label="Map of reviewed bathrooms">
   <div className="section-heading"><h3>Bathrooms on the map</h3><span>{located.length} {located.length===1?"location":"locations"}</span></div>
-  <p>Tap a toilet pin to see bathroom reviews, photos, and access details.</p>
+  <p>Tap a toilet pin to see bathroom reviews, photos, and access details. Address pins show approximate property or plaza locations, not individual bathroom entrances.</p>
   <div ref={container} className="review-map" aria-label="Interactive Las Vegas bathroom map"/>
   {error && <p role="status">{error}</p>}
   {venues.length>located.length && <p className="photo-rule">{venues.length-located.length} {venues.length-located.length===1?"property needs an address pin":"properties need address pins"}. All matching properties are listed below.</p>}
