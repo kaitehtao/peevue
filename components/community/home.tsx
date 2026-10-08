@@ -428,7 +428,7 @@ export default function Home() {
                 .map((r) => (
                   <article className="review" key={r.id}>
                     <div>
-                      <strong>{r.name}</strong>
+                      <strong>{r.profileId?<a className="inline-link" href={"/members/"+r.profileId}>{r.name}</a>:r.name}</strong>
                       <span>
                         <Toilet size={13} />
                         {r.rating}/5

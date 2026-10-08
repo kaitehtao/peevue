@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import type { User } from "@supabase/supabase-js";
+import { AdminReports } from "@/components/social/admin-reports";
+import { ProfileEditor } from "@/components/social/profile-editor";
 import { ReviewEditor, type EditableReview } from "@/components/community/review-editor";
 import { Header, Footer } from "@/components/community/header";
 import { browserClient, googleSignInAvailable, memberFetch } from "@/lib/supabase-browser";
@@ -222,6 +224,8 @@ export default function Account() {
                 <p>Your email stays private. Previous reviews keep the name submitted with them.</p>
                 <a className="inline-link" href="/account?mode=reset" onClick={e => {e.preventDefault(); setMode("reset"); setMessage(""); setError("");}}>Request a password reset</a>
               </section>
+              <ProfileEditor/>
+              {isAdmin&&<AdminReports/>}
               <h2>My reviews</h2>
               <p>Track your submissions and moderation decisions here.</p>
               {reviews.length === 0 ? (

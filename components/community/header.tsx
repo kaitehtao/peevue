@@ -37,7 +37,7 @@ export function Footer() {
       </a>
       <span>Better bathroom breaks, together.</span>
       <a href="/las-vegas-bathrooms">Las Vegas bathroom directory</a>
-      <a href="/privacy">Privacy</a>
+      <a href="/members">Community profiles</a><a href="/inbox">Messages</a><a href="/privacy">Privacy</a>
       <a href="/admin">Admin portal</a>
     </footer>
   );

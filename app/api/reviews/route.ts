@@ -19,7 +19,7 @@ export async function GET() {
     const { data: reviews, error } = await db
       .from("community_reviews")
       .select(
-        "id,venue_id,bathroom_id,display_name,rating,body,passcode,visited,created_at,photo_keys",
+        "id,user_id,venue_id,bathroom_id,display_name,rating,body,passcode,visited,created_at,photo_keys",
       )
       .eq("status", "approved")
       .order("created_at", { ascending: false })
@@ -33,6 +33,10 @@ export async function GET() {
     const bathroomIds = [...new Set(reviews.map(r => r.bathroom_id).filter(Boolean))];
     const {data: bathrooms, error: bathroomError} = bathroomIds.length ? await db.from("bathrooms").select("*").in("id",bathroomIds) : {data:[],error:null};
     if (bathroomError) throw bathroomError;
+    const authors=[...new Set(reviews.map(r=>r.user_id).filter(Boolean))];
+    const profiles=authors.length?await db.from("member_profiles").select("user_id").eq("is_public",true).in("user_id",authors):{data:[],error:null};
+    if(profiles.error)throw profiles.error;
+    const publicAuthors=new Set(profiles.data!.map(p=>p.user_id));
     return json({
       contributionsEnabled: true,
       reviews: reviews.map((r) => ({
@@ -40,6 +44,7 @@ export async function GET() {
         venueId: r.venue_id,
         bathroomId: r.bathroom_id,
         name: r.display_name,
+        profileId: publicAuthors.has(r.user_id)?r.user_id:null,
         rating: r.rating,
         body: r.body,
         passcode: r.passcode,

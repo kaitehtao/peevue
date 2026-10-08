@@ -1,0 +1,4 @@
+"use client";
+import {useState} from 'react';
+import {memberFetch} from '@/lib/supabase-browser';
+export function AdminReports(){const [reports,setReports]=useState<Array<{id:string;reason:string;member_messages:{body:string;sender:string}}>>([]),[status,setStatus]=useState('');return <section className="account-box"><h2>Reported messages</h2><button className="secondary" onClick={async()=>{try{const r=await memberFetch('/api/admin/reports');const d=await r.json() as {error?:string;reports:typeof reports};if(!r.ok)throw Error(d.error);setReports(d.reports);setStatus(d.reports.length?'':'No reported messages.');}catch(e){setStatus((e as Error).message);}}}>Load reports</button><p role="status">{status}</p>{reports.map(r=><article key={r.id}><p>Reason: {r.reason}</p><blockquote>{r.member_messages.body}</blockquote><a className="inline-link" href={'/members/'+r.member_messages.sender}>View sender</a></article>)}</section>;}

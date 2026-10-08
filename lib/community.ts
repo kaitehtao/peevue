@@ -125,6 +125,7 @@ export type Venue = VenueInput & {
   photos: string[];
 };
 export type Review = {
+  profileId?: string | null;
   id: string;
   venueId: string | null;
   bathroomId: string | null;
