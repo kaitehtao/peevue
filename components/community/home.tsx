@@ -1,4 +1,5 @@
 "use client";
+import { PhotoGallery } from "@/components/community/photo-gallery";
 import { useEffect, useState } from "react";
 import {
   Search,
@@ -373,13 +374,7 @@ export default function Home() {
               <DialogDescription>
                 {detail.type} · {detail.area}
               </DialogDescription>
-              {detail.photos[0] && (
-                <img
-                  className="detail-photo"
-                  src={detail.photos[0]}
-                  alt={"Bathroom at " + detail.name}
-                />
-              )}
+              <PhotoGallery key={detail.id+selectedBathroom} photos={selectedBathroom==="all"?detail.photos:detail.bathrooms.find(b=>b.id===selectedBathroom)?.photos || []} label={"Bathroom at "+detail.name}/>
               <p>{detail.address}</p>
               <a className="inline-link" href={"/bathrooms/"+detail.id}>Open permanent bathroom review page</a>
               {detail.yelpUrl && <a className="text-button" href={detail.yelpUrl} target="_blank" rel="noopener noreferrer">View this property on Yelp <ArrowUpRight size={16}/></a>}
@@ -442,18 +437,7 @@ export default function Home() {
                     <p><strong>{detail.bathrooms.find(b=>b.id===r.bathroomId)?.location || "Location not specified"} · {detail.bathrooms.find(b=>b.id===r.bathroomId)?.gender || "Not specified"}</strong></p><small>Visited {r.visited}</small>
                     <p>{r.body}</p>
                     {r.passcode && <p>Bathroom passcode: <code className="bathroom-passcode">{r.passcode}</code><small className="passcode-note">Reported for this visit. Codes may change; ask staff if needed.</small></p>}
-                    <div className="review-photos">
-                      {r.photos.map((src) => (
-                        <a
-                          href={src}
-                          target="_blank"
-                          rel="noreferrer"
-                          key={src}
-                        >
-                          <img src={src} alt={"Bathroom photo by " + r.name} />
-                        </a>
-                      ))}
-                    </div>
+                    <PhotoGallery photos={r.photos} label={"Bathroom photos by "+r.name}/>
                   </article>
                 ))}
             </>
