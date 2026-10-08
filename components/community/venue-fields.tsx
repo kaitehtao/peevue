@@ -142,8 +142,7 @@ export function VenueFields({
         />
       </label>
       <p className="photo-rule">
-        Use GPS only while you are at the bathroom. This venue location will be
-        public after approval.
+        A toilet pin is added automatically from your saved address. Shared building or plaza addresses are fine. Use GPS only while you are at the bathroom. Locations become public after approval.
       </p>
       <button
         type="button"

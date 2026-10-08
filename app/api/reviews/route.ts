@@ -1,3 +1,4 @@
+import { withAddressPin } from "@/lib/automatic-location";
 import { submissionSchema } from "@/lib/community";
 import { sanitizeJpeg } from "@/lib/photo";
 import {
@@ -134,6 +135,7 @@ export async function POST(request: Request) {
       if(error) throw error;
       if(!data) throw new ApiError(400,"Choose a bathroom within the selected property.");
     }
+    if(input.venue && !input.venueId) input.venue = await withAddressPin(input.venue);
     const files = form.getAll("photos");
     if (files.length > 5) throw new ApiError(400, "Choose up to five photos.");
     const clean = await Promise.all(

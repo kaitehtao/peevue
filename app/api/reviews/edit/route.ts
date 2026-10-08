@@ -1,3 +1,4 @@
+import { withAddressPin } from "@/lib/automatic-location";
 import { editReviewSchema } from "@/lib/community";
 import { sanitizeJpeg } from "@/lib/photo";
 import { administratorAccess, ApiError, boundedBody, failure, json, quota, sameOrigin, service, user } from "@/lib/supabase-server";
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
     if(!review || (!isAdmin && review.user_id !== who!.id)) throw new ApiError(403,"You can only edit your own reviews.");
     if(review.updated_at !== input.updatedAt) throw new ApiError(409,"This review has changed. Refresh the page before editing again.");
     if(input.keepPhotos.some(key=>!review.photo_keys.includes(key))) throw new ApiError(400,"Choose only photos from this review.");
+    if(input.venue) input.venue = await withAddressPin(input.venue);
     const files = form.getAll("photos");
     if(files.length + input.keepPhotos.length > 5) throw new ApiError(400,"Keep up to five photos in total.");
     for(const file of files) {

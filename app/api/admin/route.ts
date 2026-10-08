@@ -1,3 +1,4 @@
+import { withAddressPin } from "@/lib/automatic-location";
 import { z } from "zod";
 import { venueSchema, bathroomSchema } from "@/lib/community";
 import {
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
         "Check the venue details and moderation decision.",
       );
     const p = parsed.data;
+    if(p.status === "approved") p.venue = await withAddressPin(p.venue);
     const { error } = await service().rpc("moderate_review", {
       p_id: p.id,
       p_actor: who.id,
