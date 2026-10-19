@@ -9,6 +9,7 @@ export const placeTypes = [
   "School",
   "Public building",
   "Public restroom",
+  "Bathroom on the route to Las Vegas",
   "Other",
 ] as const;
 export const neighborhoods = [
@@ -20,6 +21,7 @@ export const neighborhoods = [
   "Henderson",
   "North Las Vegas",
   "Las Vegas area",
+  "Outside Las Vegas",
 ] as const;
 export const amenities = [
   "Accessible",
@@ -64,8 +66,8 @@ export const venueSchema = z
     type: categorySchema,
     access: z.enum(["Public access", "Customers only", "Ask staff"]),
     tags: z.array(z.enum(amenities)).max(3),
-    latitude: z.number().min(35.8).max(36.5).nullable(),
-    longitude: z.number().min(-115.6).max(-114.8).nullable(),
+    latitude: z.number().min(-90).max(90).nullable(),
+    longitude: z.number().min(-180).max(180).nullable(),
     locationSource: z.enum(["gps", "address", "manual"]),
   })
   .refine(
@@ -141,6 +143,9 @@ export type Review = {
   venue?: VenueInput;
   venueName?: string;
 };
+export function validCoordinates(latitude: number, longitude: number) {
+  return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+}
 export function inVegas(latitude: number, longitude: number) {
   return (
     Number.isFinite(latitude) &&
@@ -155,6 +160,7 @@ export function areaFor(
   latitude: number,
   longitude: number,
 ): (typeof neighborhoods)[number] {
+  if (!inVegas(latitude, longitude)) return "Outside Las Vegas";
   // Approximate Spring Mountain corridor west of I-15 toward Rainbow.
   // This is a suggested neighborhood, not an official boundary; users can correct it.
   if (latitude >= 36.121 && latitude <= 36.134 && longitude >= -115.245 && longitude <= -115.185)

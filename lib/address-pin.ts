@@ -3,6 +3,8 @@ export type AddressPin = {latitude:number;longitude:number};
 export function streetAddress(address:string) {
  const start=address.search(/\b\d{1,6}\b/);
  if(start<0)return address;
+ // Preserve city and state for stops outside the Las Vegas valley.
+ if (!/\b(?:Las Vegas|Henderson)\b/i.test(address)) return address.slice(start).replace(/^(\d+)\s*,\s*/,"$1 ").trim();
  const street=address.slice(start).replace(/^(\d+)\s*,\s*/,"$1 ").split(/,|\s+(?:North Las Vegas|Las Vegas|Henderson)\b/i)[0];
  const city=/\bNorth Las Vegas\b/i.test(address)?"North Las Vegas":/\bHenderson\b/i.test(address)?"Henderson":"Las Vegas";
  const zip=address.match(/\b89\d{3}\b/)?.[0] || "";
@@ -11,7 +13,7 @@ export function streetAddress(address:string) {
 function validPin(latitude:unknown,longitude:unknown):AddressPin|null {
  if(latitude==null||longitude==null)return null;
  const lat=Number(latitude),lng=Number(longitude);
- return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=35.8&&lat<=36.5&&lng>=-115.6&&lng<=-114.8?{latitude:lat,longitude:lng}:null;
+ return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180?{latitude:lat,longitude:lng}:null;
 }
 export async function resolveAddressPin(address:string,request:typeof fetch=fetch,beforeOsm:()=>Promise<void>=async()=>{}):Promise<AddressPin|null> {
  const normalized=streetAddress(address);
@@ -24,7 +26,7 @@ export async function resolveAddressPin(address:string,request:typeof fetch=fetc
  try {
   await beforeOsm();
   const osm=new URL("https://nominatim.openstreetmap.org/search");
-  osm.search=new URLSearchParams({q:normalized,format:"jsonv2",addressdetails:"1",countrycodes:"us",viewbox:"-115.6,36.5,-114.8,35.8",bounded:"1",limit:"3"}).toString();
+  osm.search=new URLSearchParams({q:normalized,format:"jsonv2",addressdetails:"1",countrycodes:"us",limit:"3"}).toString();
   const r=await request(osm,{headers:{"User-Agent":"PEEVUE/1.0 (https://peevue.com; bathroom address lookup)"},signal:AbortSignal.timeout(7000)});
   if(r.ok){const results=await r.json() as Array<{lat:unknown;lon:unknown;address?:{house_number?:string}}>;const house=normalized.match(/^\d+[A-Za-z]?\b/)?.[0];
    for(const result of results){

@@ -4,7 +4,7 @@ import { MapPin, LocateFixed } from "lucide-react";
 import {
   amenities,
   areaFor,
-  inVegas,
+  validCoordinates,
   neighborhoods,
   categoryOptions,
   type VenueInput,
@@ -86,9 +86,9 @@ export function VenueFields({
         }),
       );
       const { latitude, longitude, accuracy } = p.coords;
-      if (!inVegas(latitude, longitude))
+      if (!validCoordinates(latitude, longitude))
         throw new Error(
-          "PEEVUE is starting in the Las Vegas area. Enter the bathroom address manually.",
+          "Your location could not be read. Enter the bathroom address manually.",
         );
       if (accuracy > 1000)
         throw new Error(
@@ -169,7 +169,7 @@ export function VenueFields({
             });
             setResults([]);
           }}
-          placeholder="Street number, street, city, NV, ZIP"
+          placeholder="Street number, street, city, state, ZIP"
         />
       </label>
       <button
@@ -207,7 +207,7 @@ export function VenueFields({
       )}
       <div className="form-two">
         <label>
-          Neighborhood{" "}
+          Area / region{" "}
           <select
             value={value.area}
             onChange={(e) =>

@@ -23,7 +23,18 @@ test('falls back to a shared plaza address while rejecting a street-only centroi
  ]),async()=>{quota++;});
  assert.equal(quota,1);assert.equal(pin.latitude,36.12652);
 });
-test('unresolved, out-of-area, and unavailable lookups do not invent pins',async()=>{
- assert.equal(await resolveAddressPin('4000 Eastern Ave, Las Vegas',async()=>reply({result:{addressMatches:[{coordinates:{y:40,x:-74}}]}})),null);
+test('unresolved, invalid-coordinate, and unavailable lookups do not invent pins',async()=>{
+ assert.equal(await resolveAddressPin('4000 Eastern Ave, Las Vegas',async()=>reply({result:{addressMatches:[{coordinates:{y:140,x:-74}}]}})),null);
  assert.equal(await resolveAddressPin('4000 Eastern Ave, Las Vegas',async()=>{throw Error('offline');}),null);
+});
+
+test('preserves out-of-state route addresses and accepts their pins',async()=>{
+ const address='123 Main Street, Barstow, CA 92311';
+ assert.equal(streetAddress(address),address);
+ assert.equal(streetAddress('Stop, 456, Main Street, Kingman, AZ 86401'),'456 Main Street, Kingman, AZ 86401');
+ const pin=await resolveAddressPin(address,async url=>{
+  assert.equal(url.searchParams.get('address'),address);
+  return reply({result:{addressMatches:[{coordinates:{y:34.8958,x:-117.0173}}]}});
+ });
+ assert.deepEqual(pin,{latitude:34.8958,longitude:-117.0173});
 });

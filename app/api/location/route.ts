@@ -1,4 +1,4 @@
-import { areaFor, inVegas } from "@/lib/community";
+import { areaFor, validCoordinates } from "@/lib/community";
 import {
   ApiError,
   failure,
@@ -15,16 +15,16 @@ export async function GET(request: Request) {
       lng = Number(params.get("lng"));
     const reverse = params.has("lat") && params.has("lng");
     if (
-      reverse ? !inVegas(lat, lng) : address.length < 8 || address.length > 250
+      reverse ? !validCoordinates(lat, lng) : address.length < 8 || address.length > 250
     )
       throw new ApiError(
         400,
-        "Enter a Las Vegas area address or use a location in the Las Vegas area.",
+        "Enter a complete street address or use a valid GPS location.",
       );
     await ipQuota(request, "location", 30, 3600);
     const key = reverse
-      ? `reverse:${lat.toFixed(4)},${lng.toFixed(4)}`
-      : `address:${address.toLowerCase()}`;
+      ? `reverse-v2:${lat.toFixed(4)},${lng.toFixed(4)}`
+      : `address-v2:${address.toLowerCase()}`;
     const db = service();
     const { data: cached, error } = await db
       .from("geocode_cache")
@@ -49,8 +49,6 @@ export async function GET(request: Request) {
     } else {
       url.searchParams.set("q", address);
       url.searchParams.set("countrycodes", "us");
-      url.searchParams.set("viewbox", "-115.6,36.5,-114.8,35.8");
-      url.searchParams.set("bounded", "1");
       url.searchParams.set("limit", "3");
     }
     const response = await fetch(url, {
@@ -69,7 +67,7 @@ export async function GET(request: Request) {
     const result = (await response.json()) as any;
     const list = (reverse ? [result] : result)
       .filter(
-        (v: any) => v.lat && v.lon && inVegas(Number(v.lat), Number(v.lon)),
+        (v: any) => v.lat && v.lon && validCoordinates(Number(v.lat), Number(v.lon)),
       )
       .map((v: any) => ({
         address: v.display_name,

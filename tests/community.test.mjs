@@ -52,6 +52,7 @@ await db.exec(await readFile(new URL('../supabase/migrations/20261005000100_prop
 await db.exec(await readFile(new URL('../supabase/migrations/20261006000100_review_editing.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20261006000200_five_review_photos.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/20261006000300_entire_entry_editing.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261017000100_outside_vegas_locations.sql', import.meta.url), 'utf8'));
 await db.query("insert into auth.users(id) values($1),($2)", [actor, reviewer]);
 await db.query("insert into administrators(user_id) values($1)", [actor]);
 after(() => db.close());
@@ -100,7 +101,7 @@ test("submission validation rejects forged ratings, future dates, missing consen
     { consent: false },
     { venue: null },
     { venue: { ...venue, latitude: 36.1, longitude: null } },
-    { venue: { ...venue, latitude: 90, longitude: 0 } },
+    { venue: { ...venue, latitude: 91, longitude: 0 } },
     { website: "spam" },
   ])
     assert.equal(
@@ -377,4 +378,14 @@ test("entire entry edits publish atomically for admins and hold author property 
  assert.equal(review.status,"pending");assert.equal(review.proposed_venue.name,"Author correction");assert.equal((await property()).name,"Corrected property");
  await asRole("service_role","select moderate_review($1,$2,$3,$4,$5,$6,$7,$8,$9)",[rid,actor,review.updated_at,"approved","",[],JSON.stringify(review.proposed_venue),"",JSON.stringify(review.proposed_bathroom)]);
  assert.equal((await property()).name,"Author correction");
+});
+
+test('route stops outside Las Vegas validate and persist without Vegas neighborhood labels',async()=>{
+ const stop={...venue,address:'123 Main Street, Barstow, CA 92311',area:'Outside Las Vegas',type:'Bathroom on the route to Las Vegas',latitude:34.8958,longitude:-117.0173,locationSource:'address'};
+ assert.equal(submissionSchema.safeParse({...input,venue:stop}).success,true);
+ assert.equal(areaFor(stop.latitude,stop.longitude),'Outside Las Vegas');
+ assert.equal(areaFor(35.1894,-114.053),'Outside Las Vegas');
+ const result=await db.query("insert into venues(name,address,area,type,access,location_source,latitude,longitude) values($1,$2,$3,$4,$5,$6,$7,$8) returning latitude,longitude",[stop.name,stop.address,stop.area,stop.type,stop.access,stop.locationSource,stop.latitude,stop.longitude]);
+ assert.equal(result.rows[0].latitude,stop.latitude);
+ await assert.rejects(db.query("update venues set latitude=91 where address=$1",[stop.address]));
 });

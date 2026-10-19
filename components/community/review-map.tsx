@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type * as Leaflet from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { inVegas, type Venue } from "@/lib/community";
+import { validCoordinates, type Venue } from "@/lib/community";
 
 export function ReviewMap({venues,onSelect}:{venues:Venue[];onSelect:(venue:Venue)=>void}) {
  const container=useRef<HTMLDivElement>(null);
@@ -11,7 +11,7 @@ export function ReviewMap({venues,onSelect}:{venues:Venue[];onSelect:(venue:Venu
  const markers=useRef<Leaflet.LayerGroup|null>(null);
  const boundsKey=useRef("");
  const [ready,setReady]=useState(false),[error,setError]=useState("");
- const located=venues.filter(v=>v.latitude!==null && v.longitude!==null && inVegas(v.latitude,v.longitude));
+ const located=venues.filter(v=>v.latitude!==null && v.longitude!==null && validCoordinates(v.latitude,v.longitude));
  useEffect(()=>{
   let disposed=false;let observer:ResizeObserver|undefined;
   void import("leaflet").then(module=>{
@@ -46,7 +46,7 @@ export function ReviewMap({venues,onSelect}:{venues:Venue[];onSelect:(venue:Venu
  return <section className="review-map-section" aria-label="Map of reviewed bathrooms">
   <div className="section-heading"><h3>Bathrooms on the map</h3><span>{located.length} {located.length===1?"location":"locations"}</span></div>
   <p>Tap a toilet pin to see bathroom reviews, photos, and access details. Address pins show approximate property or plaza locations, not individual bathroom entrances.</p>
-  <div ref={container} className="review-map" aria-label="Interactive Las Vegas bathroom map"/>
+  <div ref={container} className="review-map" aria-label="Interactive bathroom review map"/>
   {error && <p role="status">{error}</p>}
   {venues.length>located.length && <p className="photo-rule">{venues.length-located.length} {venues.length-located.length===1?"property needs an address pin":"properties need address pins"}. All matching properties are listed below.</p>}
   {!venues.length && <p>No reviewed bathrooms match these filters.</p>}
