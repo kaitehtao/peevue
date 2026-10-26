@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { resolveGpsAddress } from "@/lib/gps-location";
 import { MapPin, LocateFixed } from "lucide-react";
 import {
   amenities,
@@ -42,7 +43,9 @@ export function VenueFields({
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [results, setResults] = useState<LocationResult[]>([]);
-  const set = (patch: Partial<VenueInput>) => onChange({ ...value, ...patch });
+  const latest = useRef(value);
+  latest.current = value;
+  const set = (patch: Partial<VenueInput>) => onChange({ ...latest.current, ...patch });
   async function lookup() {
     setBusy(true);
     setMessage("");
@@ -59,7 +62,7 @@ export function VenueFields({
       setResults(data.results);
       if (!data.results.length)
         setMessage(
-          "No match found. Keep the address you entered and choose a neighborhood; an administrator will verify it.",
+          "No match found. Check the street number and city, or use your current location while at the bathroom.",
         );
     } catch (e) {
       setMessage((e as Error).message);
@@ -94,19 +97,7 @@ export function VenueFields({
         throw new Error(
           "Your location is too imprecise. Enter the bathroom address instead.",
         );
-      let address = value.address;
-      try {
-        const response = await fetch(
-          `/api/location?lat=${latitude}&lng=${longitude}`,
-        );
-        const data = (await response.json()) as {
-          error?: string;
-          results: LocationResult[];
-        };
-        if (response.ok && data.results[0]) address = data.results[0].address;
-      } catch {
-        /* GPS remains useful when reverse lookup is unavailable. */
-      }
+      const address = await resolveGpsAddress(latitude, longitude);
       set({
         latitude: Number(latitude.toFixed(5)),
         longitude: Number(longitude.toFixed(5)),
@@ -115,7 +106,7 @@ export function VenueFields({
         address,
       });
       setMessage(
-        `Location found (within about ${Math.ceil(accuracy)} m). Check the address and neighborhood below. Nearby addresses may not identify this bathroom.`,
+        `Location captured (within about ${Math.ceil(accuracy)} m). ${address.startsWith("GPS location:") ? "No street address was available. You can save this GPS location as the address or enter a street address below." : "Check the suggested address below; you can correct it without losing your GPS pin."}`,
       );
     } catch (e) {
       setMessage(
@@ -154,7 +145,7 @@ export function VenueFields({
         {busy ? "Finding location…" : "Use my current location"}
       </button>
       <label>
-        Street address
+        Street address or GPS location
         <input
           required
           minLength={8}
@@ -163,9 +154,7 @@ export function VenueFields({
           onChange={(e) => {
             set({
               address: e.target.value,
-              latitude: null,
-              longitude: null,
-              locationSource: "manual",
+              ...(value.locationSource === "gps" ? {} : { latitude: null, longitude: null, locationSource: "manual" as const }),
             });
             setResults([]);
           }}
@@ -175,7 +164,7 @@ export function VenueFields({
       <button
         type="button"
         className="text-button"
-        disabled={busy || value.address.length < 8}
+        disabled={busy || value.address.length < 8 || value.address.startsWith("GPS location:")}
         onClick={() => void lookup()}
       >
         Find this address <MapPin size={16} />
@@ -269,12 +258,12 @@ export function VenueFields({
       {value.latitude !== null && (
         <p className="photo-rule">
           Location pin: {value.latitude.toFixed(5)},{" "}
-          {value.longitude!.toFixed(5)} · Neighborhood is approximate.{" "}
+          {value.longitude!.toFixed(5)} · Area is approximate.{" "}
           <button
             type="button"
             className="inline-link"
             onClick={() =>
-              set({ latitude: null, longitude: null, locationSource: "manual" })
+              set({ latitude: null, longitude: null, locationSource: "manual", address: value.address.startsWith("GPS location:") ? "" : value.address })
             }
           >
             Remove pin
