@@ -43,9 +43,17 @@ export function ReviewMap({venues,onSelect}:{venues:Venue[];onSelect:(venue:Venu
    boundsKey.current=key;
   }
  },[venues,ready,onSelect]);
+ function fitPins() {
+  const L=library.current,instance=map.current;
+  if(!L||!instance||!located.length)return;
+  instance.invalidateSize();
+  instance.fitBounds(L.latLngBounds(located.map(v=>[v.latitude!,v.longitude!] as [number,number])),{padding:[40,40],maxZoom:15});
+ }
  return <section className="review-map-section" aria-label="Map of reviewed bathrooms">
   <div className="section-heading"><h3>Bathrooms on the map</h3><span>{located.length} {located.length===1?"location":"locations"}</span></div>
   <p>Tap a toilet pin to see bathroom reviews, photos, and access details. Address pins show approximate property or plaza locations, not individual bathroom entrances.</p>
+  <button type="button" className="filter" disabled={!ready || !located.length} onClick={fitPins}>Fit map to all matching pins</button>
+  <p className="photo-rule">The map follows the area, category, and search filters above. Choose “Show all locations” to include every reviewed property, or “Outside Las Vegas” to see stops beyond the valley.</p>
   <div ref={container} className="review-map" aria-label="Interactive bathroom review map"/>
   {error && <p role="status">{error}</p>}
   {venues.length>located.length && <p className="photo-rule">{venues.length-located.length} {venues.length-located.length===1?"property needs an address pin":"properties need address pins"}. All matching properties are listed below.</p>}

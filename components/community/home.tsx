@@ -112,7 +112,7 @@ export default function Home() {
             <h1>
               Good times. <span>Great bathrooms.</span>
             </h1>
-            <p>Find a clean bathroom in Las Vegas. Compare restroom cleanliness reviews, photos, locations, and access details before you go.</p>
+            <p>Find a clean bathroom in Las Vegas and along your drive. Compare restroom cleanliness reviews, photos, locations, and access details before you go.</p>
             <a className="inline-link" href="/las-vegas-bathrooms">Explore the Las Vegas bathroom directory</a>
           </div>
           <button className="primary" onClick={() => start()}>
@@ -196,6 +196,10 @@ export default function Home() {
                   {t}
                 </button>
               ))}
+            </div>
+            <div className="filter-row" aria-label="Map coverage">
+              <button className="filter" onClick={() => {setQuery("");setArea("All neighborhoods");setType("All places");setAccessible(false);setPublicOnly(false);}}>Show all locations</button>
+              <button className={"filter " + (area === "Outside Las Vegas" ? "on" : "")} aria-pressed={area === "Outside Las Vegas"} onClick={() => {setQuery("");setArea("Outside Las Vegas");setType("All places");setAccessible(false);setPublicOnly(false);}}>Outside Las Vegas</button>
             </div>
             <div className="filter-row">
               <button
